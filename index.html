@@ -3,27 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Google Sheets Sync</title>
+  <title>Enterprise RMS - Full Featured Google Sheets Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
     @media print {
       body * { visibility: hidden; }
       #printable-receipt, #printable-receipt * { visibility: visible; }
       #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
     }
-    .active-nav-tab { background-color: #059669 !important; color: #ffffff !important; font-weight: 800 !important; }
+    .touch-action-manipulation { touch-action: manipulation; }
+    .active-nav-tab {
+      background-color: #059669 !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    @keyframes toast-pop { 0% { transform: translateY(-100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    .toast-anim { animation: toast-pop 0.3s ease-out forwards; }
     button, select, input { min-height: 40px; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased touch-action-manipulation select-none min-h-screen flex flex-col justify-between">
 
-  <!-- RECEIPT MODAL -->
-  <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative">
-      <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+  <!-- 1. RECEIPT MODAL -->
+  <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 relative">
+      <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
       <div id="printable-receipt" class="bg-slate-50 border p-4 rounded-xl text-slate-900 font-mono text-xs mb-4 space-y-2">
         <div class="text-center border-b pb-2">
           <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Bundu Khan Restaurant</h3>
@@ -31,143 +42,241 @@
           <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Order #1001</p>
           <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Table: Table 1</p>
           <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Taken By: Counter</p>
+          <p id="receipt-time" class="text-[10px] text-slate-400">Time: 12:00 PM</p>
         </div>
         <div id="receipt-items-list" class="space-y-1 border-b pb-2"></div>
-        <div class="flex justify-between font-black text-sm pb-2">
+        <div class="flex justify-between font-black text-sm border-b pb-2">
           <span>TOTAL:</span>
           <span id="receipt-total-amount">Rs. 0</span>
         </div>
+        <div class="text-center text-[10px] text-slate-400 pt-1">
+          <p>Thank you for visiting!</p>
+          <p class="font-bold">Powered by SaaSential Technologies</p>
+        </div>
       </div>
-      <button onclick="window.print()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Print Bill</button>
+      <div class="space-y-2">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Customer WhatsApp Number</label>
+          <input type="text" id="cust-whatsapp-num" placeholder="923001234567" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+          <button onclick="sendReceiptToWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- TOAST -->
-  <div id="notification-toast" class="hidden fixed top-3 right-3 z-50 bg-slate-900 text-white p-3 rounded-xl shadow-xl flex items-center space-x-3">
+  <!-- 2. TOAST NOTIFICATION -->
+  <div id="notification-toast" class="hidden fixed top-3 right-3 left-3 sm:left-auto z-50 bg-slate-900 text-white p-3.5 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center space-x-3 max-w-md toast-anim">
+    <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl text-lg font-bold"><i class="fa-solid fa-bell"></i></div>
     <div>
-      <h4 id="toast-title" class="font-bold text-xs text-emerald-400">Notification</h4>
-      <p id="toast-body" class="text-[11px] text-slate-300">Done</p>
+      <h4 id="toast-title" class="font-bold text-xs text-emerald-400">System Notification</h4>
+      <p id="toast-body" class="text-[11px] text-slate-300">Action processed successfully.</p>
     </div>
   </div>
 
-  <!-- MENU CRUD MODAL -->
-  <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
-      <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+  <!-- 3. RESTAURANT PROFILE EDIT MODAL -->
+  <div id="restaurant-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-5 relative">
+      <button onclick="closeRestaurantEditModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-store text-emerald-600 mr-2"></i> Edit Restaurant Details</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Restaurant Name</label>
+          <input type="text" id="edit-rest-name" placeholder="e.g. Bundu Khan Restaurant" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Branch Name</label>
+          <input type="text" id="edit-branch-name" placeholder="e.g. GULBERG" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+        </div>
+        <button onclick="saveRestaurantDetails()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MENU CRUD MODAL -->
+  <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
+      <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
       <div>
         <h3 class="text-base font-bold text-slate-900 mb-3" id="menu-modal-title">Add / Edit Menu Item</h3>
         <div class="space-y-2 mb-4">
           <input type="hidden" id="menu-item-id">
-          <input type="text" id="menu-item-name" placeholder="Item Name" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <input type="text" id="menu-item-image" placeholder="Image URL" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Save Item</button>
+          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. Chicken Karahi)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <input type="text" id="menu-item-image" placeholder="Image URL (Unsplash or direct image link)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs shadow">Save Item</button>
         </div>
       </div>
       <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="crud-menu-list-container"></div>
     </div>
   </div>
 
-  <!-- TABLE CRUD MODAL -->
-  <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
-      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3">Manage Tables</h3>
+  <!-- 5. TABLE CRUD MODAL -->
+  <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 relative">
+      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-3">Manage Tables & Spots</h3>
       <div class="grid grid-cols-12 gap-2 mb-4">
-        <input type="text" id="new-spot-name" placeholder="Table Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
-        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">Add</button>
+        <input type="text" id="new-spot-name" placeholder="Table 5 / Car Spot 05" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
+        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">Add Spot</button>
       </div>
       <div class="max-h-60 overflow-y-auto space-y-2" id="tables-list-container"></div>
     </div>
   </div>
 
-  <!-- QR MODAL -->
-  <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
-      <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+  <!-- 6. QR STANDEE MODAL -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 relative text-center">
+      <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-3" id="qr-table-title">Table QR</h3>
       <div id="qrcode-container" class="flex justify-center p-4 bg-slate-50 border rounded-2xl mb-4"></div>
-      <button onclick="window.print()" class="w-full bg-slate-900 text-white text-xs font-bold py-3 rounded-xl">Print QR</button>
+      <button onclick="window.print()" class="w-full bg-slate-900 text-white text-xs font-bold py-3 rounded-xl">Print QR Standee</button>
     </div>
   </div>
 
   <div>
-    <header class="bg-slate-900 text-white p-3 sm:p-4 shadow-lg flex justify-between items-center">
-      <h1 class="text-base sm:text-lg font-bold">Bundu Khan <span class="text-emerald-400">RMS</span></h1>
-      <div class="flex items-center space-x-1.5">
-        <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl">Edit Menu</button>
-        <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700">Tables</button>
+    <!-- HEADER -->
+    <header class="bg-slate-900 text-white p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+      <div class="flex items-center justify-between sm:justify-start space-x-3">
+        <div class="flex items-center space-x-2">
+          <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl font-black text-lg"><i class="fa-solid fa-utensils"></i></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-bold tracking-wide" id="display-header-restaurant-name">Bundu Khan <span class="text-emerald-400">RMS</span></h1>
+              <button onclick="openRestaurantEditModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Edit Restaurant Name"><i class="fa-solid fa-pen-to-square"></i></button>
+            </div>
+            <p class="text-[10px] sm:text-xs text-slate-400" id="display-header-branch-name">Branch: GULBERG</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GOOGLE SHEETS LIVE SYNC BAR -->
+      <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
+        <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="sync-dot"></span>
+          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Sheets Live</span>
+          <button onclick="fetchOrdersFromSheet()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Sync</button>
+        </div>
+
+        <div class="flex items-center space-x-1.5">
+          <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
+          <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
+          <button onclick="exportSystemDataBackup()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-download"></i> Backup</button>
+          <label class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
+        </div>
       </div>
     </header>
 
-    <nav class="bg-white border-b px-2 py-1.5 flex space-x-1.5 overflow-x-auto">
-      <button id="btn-pos" onclick="switchTab('pos')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 active-nav-tab">POS Terminal</button>
-      <button id="btn-kds" onclick="switchTab('kds')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Kitchen KDS <span id="kds-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span></button>
-      <button id="btn-credit" onclick="switchTab('credit')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Udhaar Khata</button>
-      <button id="btn-analytics" onclick="switchTab('analytics')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Analytics</button>
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-white border-b border-slate-200 px-2 py-1.5 flex space-x-1.5 overflow-x-auto no-scrollbar">
+      <button id="btn-pos" onclick="switchTab('pos')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 active-nav-tab flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-cash-register"></i> POS Terminal</button>
+      <button id="btn-kds" onclick="switchTab('kds')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-kitchen-set"></i> Kitchen KDS <span id="kds-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span></button>
+      <button id="btn-credit" onclick="switchTab('credit')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-amber-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book text-amber-500"></i> Udhaar Khata <span id="credit-badge" class="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span></button>
+      <button id="btn-analytics" onclick="switchTab('analytics')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Analytics</button>
     </nav>
 
+    <!-- MAIN VIEWS -->
     <main class="p-2.5 sm:p-4">
       <!-- POS VIEW -->
-      <div id="view-pos" class="tab-content grid grid-cols-12 gap-3">
-        <div class="col-span-12 lg:col-span-7 bg-white p-3 rounded-2xl border">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-bold">Menu Catalog</h2>
-            <div class="flex items-center gap-2">
-              <select id="table-select-dropdown" class="bg-emerald-50 border text-xs font-bold rounded-xl px-2.5 py-2 outline-none"></select>
-              <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
+      <div id="view-pos" class="tab-content grid grid-cols-12 gap-3 sm:gap-4">
+        <div class="col-span-12 lg:col-span-7 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+            <h2 class="text-sm sm:text-base font-bold text-slate-800">Menu Catalog</h2>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <select id="table-select-dropdown" class="bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl px-2.5 py-2 outline-none flex-grow sm:flex-grow-0"></select>
+              <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap"><i class="fa-solid fa-qrcode mr-1"></i> QR</button>
             </div>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto" id="menu-grid"></div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 max-h-[420px] sm:max-h-[520px] overflow-y-auto p-0.5" id="menu-grid"></div>
         </div>
 
-        <div class="col-span-12 lg:col-span-5 bg-white p-3 rounded-2xl border flex flex-col justify-between">
+        <div class="col-span-12 lg:col-span-5 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
           <div>
-            <h2 class="text-sm font-bold border-b pb-2 mb-2 flex justify-between">
-              <span>Cart</span>
-              <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
+            <h2 class="text-sm sm:text-base font-bold text-slate-800 border-b pb-2 mb-2.5 flex justify-between items-center">
+              <span>Cart & Live Orders</span>
+              <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-bold">0 Active</span>
             </h2>
-            <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
-            <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"></div>
+            <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2.5 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
+            
+            <h3 class="text-xs font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+              <span><i class="fa-solid fa-table text-emerald-500 mr-1"></i> Google Sheets Queue:</span>
+              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Connected</span>
+            </h3>
+            <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">Loading from sheet...</p></div>
           </div>
 
-          <div class="border-t pt-2 space-y-2 mt-3">
-            <input type="text" id="waiter-name-input" placeholder="Waiter Name" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-            <div class="flex justify-between text-base font-black">
-              <span>Total:</span>
+          <div class="border-t pt-2.5 space-y-2 mt-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Order Taken By / Waiter Name</label>
+              <input type="text" id="waiter-name-input" placeholder="e.g. Ali / Counter" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+            </div>
+            <div class="flex justify-between text-base sm:text-lg font-black text-slate-900">
+              <span>Total Payable:</span>
               <span id="bill-total" class="text-emerald-600">Rs. 0</span>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="checkoutOrder('cash')" class="bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-xs">Push Order</button>
-              <button onclick="printCartDirectReceipt()" class="bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs">Print Bill</button>
+              <button onclick="checkoutOrder('cash')" class="bg-emerald-600 active:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-paper-plane"></i> Push Order
+              </button>
+              <button onclick="printCartDirectReceipt()" class="bg-slate-900 active:bg-slate-800 text-white py-3 rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-print"></i> Print Bill
+              </button>
             </div>
-            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 text-white py-2 rounded-xl font-bold text-xs">Add to Udhaar Khata</button>
+            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 active:bg-amber-700 text-white py-2 rounded-xl font-bold text-xs shadow">
+              <i class="fa-solid fa-book mr-1"></i> Add to Udhaar Khata
+            </button>
           </div>
         </div>
       </div>
 
       <!-- KDS VIEW -->
-      <div id="view-kds" class="tab-content hidden bg-slate-900 p-4 rounded-2xl text-white">
-        <h2 class="text-lg font-black text-emerald-400 mb-4">KITCHEN DISPLAY</h2>
-        <div id="kds-orders-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+      <div id="view-kds" class="tab-content hidden bg-slate-900 p-4 sm:p-6 rounded-2xl shadow-xl border border-slate-800 text-white">
+        <h2 class="text-lg sm:text-xl font-black text-emerald-400 mb-4 sm:mb-6 border-b border-slate-800 pb-3"><i class="fa-solid fa-tv mr-2"></i> KITCHEN DISPLAY SCREEN (KDS)</h2>
+        <div id="kds-orders-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
 
-      <!-- UDHAAR VIEW -->
-      <div id="view-credit" class="tab-content hidden bg-white p-4 rounded-2xl border">
-        <h2 class="text-base font-bold mb-3">Udhaar Khata</h2>
-        <table class="w-full text-left text-xs">
-          <thead><tr class="bg-slate-100"><th class="p-2">Customer</th><th class="p-2">Table</th><th class="p-2">Amount</th><th class="p-2 text-right">Action</th></tr></thead>
-          <tbody id="credit-dues-tbody"></tbody>
-        </table>
+      <!-- UDHAAR KHATA VIEW -->
+      <div id="view-credit" class="tab-content hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-3 gap-2">
+          <h2 class="text-base sm:text-lg font-bold text-slate-900"><i class="fa-solid fa-book text-amber-500 mr-2"></i> Udhaar Khata (Pending Dues)</h2>
+          <div class="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-3 py-1.5 rounded-xl">Total: <span id="total-udhaar-amount" class="text-sm font-black">Rs. 0</span></div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs min-w-[500px]">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700">
+                <th class="p-2.5">Customer</th>
+                <th class="p-2.5">Table</th>
+                <th class="p-2.5">Taken By</th>
+                <th class="p-2.5">Items</th>
+                <th class="p-2.5">Amount (PKR)</th>
+                <th class="p-2.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="credit-dues-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- ANALYTICS VIEW -->
-      <div id="view-analytics" class="tab-content hidden bg-white p-4 rounded-2xl border">
-        <h2 class="text-base font-bold mb-3">Sales Analytics</h2>
-        <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
+      <div id="view-analytics" class="tab-content hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
+          <h2 class="text-base sm:text-lg font-bold text-slate-900"><i class="fa-solid fa-chart-line text-emerald-600 mr-2"></i> Branch Sales Performance</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div class="bg-slate-50 p-3.5 rounded-xl border"><p class="text-[10px] font-bold text-slate-500 uppercase">Total Revenue</p><h3 id="branch-total-sales-stat" class="text-xl font-black text-emerald-600 mt-1">Rs. 0</h3></div>
+          <div class="bg-slate-50 p-3.5 rounded-xl border"><p class="text-[10px] font-bold text-slate-500 uppercase">Completed Orders</p><h3 id="completed-orders-count" class="text-xl font-black text-slate-900 mt-1">0 Orders</h3></div>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border relative h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
       </div>
     </main>
   </div>
+
+  <footer class="bg-slate-900 border-t border-slate-800 py-2.5 text-center text-[11px] text-slate-400 px-2 mt-4">
+    <p>Powered by <b class="text-emerald-400">SaaSential Technologies Private Limited</b> | Contact: <b>+923267903486</b></p>
+  </footer>
 
   <script>
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
@@ -183,26 +292,441 @@
       } catch(e) {}
     }
 
+    async function fetchOrdersFromSheet() {
+      try {
+        const res = await fetch(SHEET_WEB_APP_URL);
+        if(res.ok) {
+          const orders = await res.json();
+          if(Array.isArray(orders)) {
+            const active = orders.filter(o => o.status === 'Active');
+            localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
+            localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+            renderIncomingQueue();
+            renderKDS();
+          }
+        }
+      } catch(e) {}
+    }
+
+    setInterval(fetchOrdersFromSheet, 4000);
+
+    let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
+      name: "Bundu Khan Restaurant",
+      branch: "GULBERG"
+    };
+
+    function updateRestaurantHeaderUI() {
+      document.getElementById('display-header-restaurant-name').innerHTML = `${restaurantProfile.name} <span class="text-emerald-400">RMS</span>`;
+      document.getElementById('display-header-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+      document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
+      document.getElementById('receipt-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+    }
+
+    function openRestaurantEditModal() {
+      document.getElementById('edit-rest-name').value = restaurantProfile.name;
+      document.getElementById('edit-branch-name').value = restaurantProfile.branch;
+      document.getElementById('restaurant-edit-modal').classList.remove('hidden');
+    }
+
+    function closeRestaurantEditModal() {
+      document.getElementById('restaurant-edit-modal').classList.add('hidden');
+    }
+
+    function saveRestaurantDetails() {
+      const newName = document.getElementById('edit-rest-name').value.trim();
+      const newBranch = document.getElementById('edit-branch-name').value.trim();
+      if(!newName) return alert("Please enter a valid restaurant name!");
+
+      restaurantProfile.name = newName;
+      restaurantProfile.branch = newBranch || "MAIN BRANCH";
+      localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
+
+      updateRestaurantHeaderUI();
+      closeRestaurantEditModal();
+      showToast("Updated!", "Restaurant profile saved.");
+    }
+
     let currentCart = [];
-    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' }
+    let salesChartInstance = null;
+
+    let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
+      { id: 1, name: 'Table 1', type: 'Dine-In' },
+      { id: 2, name: 'Table 2', type: 'Dine-In' },
+      { id: 3, name: 'Table 3', type: 'Dine-In' }
     ];
 
-    let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [{ id: 1, name: 'Table 1', type: 'Dine-In' }];
+    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
+      { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Zinger Burger Meal', price: 650, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
+    ];
 
     function showToast(title, body) {
       document.getElementById('toast-title').innerText = title;
       document.getElementById('toast-body').innerText = body;
       const t = document.getElementById('notification-toast');
-      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000);
+      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+
+    function openReceiptModalForOrder(order) {
+      document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
+      document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
+      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || 'Counter'}`;
+      document.getElementById('receipt-time').innerText = `Time: ${order.time}`;
+      document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
+      
+      const itemsContainer = document.getElementById('receipt-items-list');
+      itemsContainer.innerHTML = order.items.map(i => `
+        <div class="flex justify-between">
+          <span>${i.name} x${i.qty}</span>
+          <span>Rs. ${i.price * i.qty}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('receipt-modal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    function printCartDirectReceipt() {
+      if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
+      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
+      const tempOrder = {
+        id: Math.floor(Math.random() * 8999 + 1000),
+        table: document.getElementById('table-select-dropdown').value,
+        waiterName: waiter,
+        items: [...currentCart],
+        totalAmount: total,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      openReceiptModalForOrder(tempOrder);
+    }
+
+    function printSpecificOrderReceipt(orderId) {
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      const ord = activeOrders.find(o => o.id === orderId);
+      if(ord) {
+        openReceiptModalForOrder(ord);
+      }
+    }
+
+    function checkoutOrder(type) {
+      if(currentCart.length === 0) return alert("Cart khali hai!");
+      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
+      const order = {
+        id: Math.floor(Math.random() * 8999 + 1000),
+        table: document.getElementById('table-select-dropdown').value,
+        waiterName: waiter,
+        items: [...currentCart],
+        totalAmount: total,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: type
+      };
+
+      if (type === 'credit') {
+        const custName = prompt("Customer Name for Udhaar Khata:") || "Walk-in Guest";
+        let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+        creditList.push({ ...order, customerName: custName });
+        localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
+        showToast("Udhaar Saved", `Saved for ${custName}`);
+        renderCreditDues();
+      } else {
+        processIncomingSyncedOrder(order);
+        openReceiptModalForOrder(order);
+      }
+
+      currentCart = [];
+      updateCartUI();
+    }
+
+    function processIncomingSyncedOrder(order) {
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      if(!activeOrders.some(o => o.id === order.id)) {
+        activeOrders.push(order);
+        localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+        
+        let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+        kdsOrders.push(order);
+        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
+
+        renderIncomingQueue();
+        renderKDS();
+        showToast("Order Placed & Synced!", `#${order.id} (${order.table})`);
+
+        pushOrderToSheet(order);
+      }
+    }
+
+    function renderIncomingQueue() {
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      document.getElementById('incoming-count-badge').innerText = `${activeOrders.length} Active`;
+      const queue = document.getElementById('incoming-orders-queue');
+      
+      if (activeOrders.length === 0) {
+        queue.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p>`;
+        return;
+      }
+
+      queue.innerHTML = activeOrders.map(ord => `
+        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-xs">
+          <div class="flex justify-between items-center font-bold text-slate-900 mb-0.5">
+            <span>#${ord.id} - ${ord.table}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
+              <button onclick="printSpecificOrderReceipt(${ord.id})" class="bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold"><i class="fa-solid fa-print"></i> Print</button>
+            </div>
+          </div>
+          <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+          <div class="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 border-t border-amber-200/60 pt-1">
+            <span>By: <b class="text-slate-800">${ord.waiterName || 'Counter'}</b></span>
+            <span>Time: ${ord.time}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderKDS() {
+      let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+      document.getElementById('kds-badge').innerText = kdsOrders.length;
+      const container = document.getElementById('kds-orders-container');
+      if (kdsOrders.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center text-slate-500 font-bold py-8">Kitchen Queue Clear.</div>`;
+        return;
+      }
+      container.innerHTML = kdsOrders.map(ord => `
+        <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-2xl shadow">
+          <div class="flex justify-between items-center mb-1 border-b border-slate-700 pb-2">
+            <span class="font-black text-white text-sm">#${ord.id}</span>
+            <span class="text-xs text-amber-400 font-bold">${ord.table}</span>
+          </div>
+          <p class="text-[10px] text-slate-400 mb-2">Taken By: <b class="text-emerald-400">${ord.waiterName || 'Counter'}</b></p>
+          <ul class="text-xs space-y-1 mb-3 text-slate-300">
+            ${ord.items.map(i => `<li class="flex justify-between"><span>${i.name}</span><b class="text-emerald-400">x${i.qty}</b></li>`).join('')}
+          </ul>
+          <button onclick="completeOrder(${ord.id})" class="w-full bg-emerald-500 active:bg-emerald-600 text-slate-950 font-black py-2.5 rounded-xl text-xs">MARK SERVED</button>
+        </div>
+      `).join('');
+    }
+
+    function completeOrder(id) {
+      let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+      const ord = kdsOrders.find(o => o.id === id);
+      kdsOrders = kdsOrders.filter(o => o.id !== id);
+      localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
+      
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      activeOrders = activeOrders.filter(o => o.id !== id);
+      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+
+      if(ord) {
+        let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+        completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
+        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+        showToast("Served & Cleared", `Order #${id} marked completed.`);
+      }
+
+      renderKDS();
+      renderIncomingQueue();
+      renderAnalyticsView();
+    }
+
+    function renderCreditDues() {
+      let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+      document.getElementById('credit-badge').innerText = creditList.length;
+      const totalUdhaar = creditList.reduce((sum, i) => sum + i.totalAmount, 0);
+      document.getElementById('total-udhaar-amount').innerText = `Rs. ${totalUdhaar.toLocaleString()}`;
+
+      const tbody = document.getElementById('credit-dues-tbody');
+      if (creditList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No pending credit dues.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = creditList.map(c => `
+        <tr class="border-b border-slate-200">
+          <td class="p-2 font-bold text-slate-900">${c.customerName}</td>
+          <td class="p-2 text-emerald-600 font-bold">${c.table}</td>
+          <td class="p-2 text-slate-700 font-semibold">${c.waiterName || 'Counter'}</td>
+          <td class="p-2 text-slate-600 truncate max-w-[120px]">${c.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
+          <td class="p-2 font-mono font-bold text-amber-600">Rs. ${c.totalAmount.toLocaleString()}</td>
+          <td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">Paid</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function clearCredit(id) {
+      let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+      const item = creditList.find(c => c.id === id);
+      if(!item) return;
+      creditList = creditList.filter(c => c.id !== id);
+      localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
+
+      let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+      completedSales.push({ id: item.id, total: item.totalAmount, waiterName: item.waiterName, time: item.time });
+      localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+
+      renderCreditDues();
+      renderAnalyticsView();
+      showToast("Cleared", "Amount added to sales.");
+    }
+
+    function renderAnalyticsView() {
+      let completedSalesList = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+      const totalRev = completedSalesList.reduce((sum, o) => sum + o.total, 0);
+      document.getElementById('branch-total-sales-stat').innerText = `Rs. ${totalRev.toLocaleString()}`;
+      document.getElementById('completed-orders-count').innerText = `${completedSalesList.length} Orders`;
+
+      const ctx = document.getElementById('branchSalesChartCanvas').getContext('2d');
+      if (salesChartInstance) salesChartInstance.destroy();
+      salesChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: completedSalesList.map(o => `#${o.id}`), datasets: [{ label: 'Sales (PKR)', data: completedSalesList.map(o => o.total), backgroundColor: '#10b981', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function openMenuCrudModal() {
+      document.getElementById('menu-crud-modal').classList.remove('hidden');
+      renderCrudMenuList();
+    }
+    function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); resetMenuForm(); }
+
+    function resetMenuForm() {
+      document.getElementById('menu-item-id').value = '';
+      document.getElementById('menu-item-name').value = '';
+      document.getElementById('menu-item-price').value = '';
+      document.getElementById('menu-item-image').value = '';
+      document.getElementById('menu-modal-title').innerText = "Add Menu Item";
+    }
+
+    function saveMenuItem() {
+      const id = document.getElementById('menu-item-id').value;
+      const name = document.getElementById('menu-item-name').value.trim();
+      const price = parseFloat(document.getElementById('menu-item-price').value);
+      const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
+
+      if(!name || !price) return alert("Please enter valid name & price!");
+
+      if(id) {
+        const item = menuCatalog.find(m => m.id == id);
+        if(item) { item.name = name; item.price = price; item.image = image; }
+      } else {
+        menuCatalog.push({ id: Date.now(), name, price, image });
+      }
+
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
+      renderCrudMenuList();
+      resetMenuForm();
+      showToast("Saved!", "Menu item updated.");
+    }
+
+    function editMenuItem(id) {
+      const item = menuCatalog.find(m => m.id == id);
+      if(!item) return;
+      document.getElementById('menu-item-id').value = item.id;
+      document.getElementById('menu-item-name').value = item.name;
+      document.getElementById('menu-item-price').value = item.price;
+      document.getElementById('menu-item-image').value = item.image;
+      document.getElementById('menu-modal-title').innerText = "Edit Menu Item";
+    }
+
+    function deleteMenuItem(id) {
+      if(!confirm("Are you sure you want to delete this menu item?")) return;
+      menuCatalog = menuCatalog.filter(m => m.id != id);
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
+      renderCrudMenuList();
+      showToast("Deleted", "Menu item removed.");
+    }
+
+    function renderCrudMenuList() {
+      document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
+        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
+          <div class="flex items-center gap-2">
+            <img src="${m.image}" class="w-8 h-8 rounded-lg object-cover">
+            <div><p class="font-bold text-slate-800">${m.name}</p><p class="text-emerald-600 font-semibold">Rs. ${m.price}</p></div>
+          </div>
+          <div class="space-x-1">
+            <button onclick="editMenuItem(${m.id})" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px]">Edit</button>
+            <button onclick="deleteMenuItem(${m.id})" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px]">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
+      if(tabId === 'analytics') renderAnalyticsView();
+      if(tabId === 'credit') renderCreditDues();
+      if(tabId === 'kds') renderKDS();
+    }
+
+    function renderTableDropdown() {
+      document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    }
+
+    function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
+    function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
+    function renderTableCrudList() {
+      document.getElementById('tables-list-container').innerHTML = tablesAndSpots.map(t => `
+        <div class="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl text-xs">
+          <span>${t.name} (${t.type})</span>
+          <button onclick="tablesAndSpots=tablesAndSpots.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots)); renderTableCrudList(); renderTableDropdown();" class="text-rose-500 font-bold">Delete</button>
+        </div>
+      `).join('');
+    }
+    function addNewTableOrSpot() {
+      const name = document.getElementById('new-spot-name').value.trim();
+      if(!name) return;
+      tablesAndSpots.push({ id: Date.now(), name, type: 'Dine-In' });
+      localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
+      document.getElementById('new-spot-name').value = '';
+      renderTableCrudList(); renderTableDropdown();
+    }
+
+    function generateSelectedTableQR() {
+      const selName = document.getElementById('table-select-dropdown').value;
+      const fullUrl = `${window.location.origin}/customer.html?branch=GULBERG&table=${encodeURIComponent(selName)}`;
+      document.getElementById('qr-table-title').innerText = `${selName} Standee QR`;
+      document.getElementById('qrcode-container').innerHTML = '';
+      new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 140, height: 140 });
+      document.getElementById('qr-modal').classList.remove('hidden');
+    }
+    function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
+
+    function exportSystemDataBackup() {
+      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, timestamp: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_GULBERG.json`; a.click();
+      showToast("Backup Downloaded", "JSON file saved.");
+    }
+
+    function importSystemDataRestore(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        showToast("Restored", "System restored!");
+        setTimeout(() => window.location.reload(), 1200);
+      };
+      reader.readAsText(file);
     }
 
     function renderMenu() {
       document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
-        <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer" onclick="addToCart(${m.id})">
-          <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
-          <p class="font-bold text-xs">${m.name}</p>
+        <div class="bg-slate-50 border border-slate-200 p-2 rounded-2xl flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform" onclick="addToCart(${m.id})">
+          <div class="h-20 sm:h-24 bg-slate-900 rounded-xl overflow-hidden mb-1.5"><img src="${m.image}" class="w-full h-full object-cover"></div>
+          <p class="font-bold text-[11px] sm:text-xs text-slate-800 leading-tight mb-1">${m.name}</p>
           <p class="text-emerald-600 font-black text-xs">Rs. ${m.price}</p>
         </div>
       `).join('');
@@ -217,121 +741,22 @@
 
     function updateCartUI() {
       const list = document.getElementById('order-items-list');
-      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; }
+      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>`; }
       else {
-        list.innerHTML = currentCart.map(c => `<div class="flex justify-between text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
+        list.innerHTML = currentCart.map(c => `<div class="flex justify-between items-center text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
       }
       const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       document.getElementById('bill-total').innerText = `Rs. ${total}`;
     }
 
-    function checkoutOrder(type) {
-      if(currentCart.length === 0) return alert("Cart is empty!");
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const order = {
-        id: Math.floor(Math.random() * 8999 + 1000),
-        table: document.getElementById('table-select-dropdown').value,
-        waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter',
-        items: [...currentCart],
-        totalAmount: total,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      if(type === 'credit') {
-        let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-        credit.push({ ...order, customerName: prompt("Customer Name:") || "Guest" });
-        localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
-        showToast("Saved", "Added to Udhaar");
-      } else {
-        let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-        active.push(order);
-        localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
-        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
-        pushOrderToSheet(order);
-        showToast("Success", "Order pushed & synced!");
-      }
-      currentCart = [];
-      updateCartUI();
-      renderIncomingQueue();
-    }
-
-    function renderIncomingQueue() {
-      let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      document.getElementById('incoming-count-badge').innerText = `${active.length} Active`;
-      document.getElementById('incoming-orders-queue').innerHTML = active.map(o => `
-        <div class="bg-amber-50 border p-2 rounded-xl text-xs">
-          <div class="font-bold">#${o.id} - ${o.table} (Rs. ${o.totalAmount})</div>
-          <div class="text-[10px] text-slate-500">${o.items.map(i=>i.name).join(', ')}</div>
-        </div>
-      `).join('');
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
-      document.getElementById('view-' + tabId).classList.remove('hidden');
-      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
-    }
-
-    function openMenuCrudModal() { document.getElementById('menu-crud-modal').classList.remove('hidden'); renderCrudMenuList(); }
-    function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); }
-    function renderCrudMenuList() {
-      document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
-        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${m.name} - Rs. ${m.price}</span>
-          <button onclick="menuCatalog=menuCatalog.filter(x=>x.id!==${m.id}); localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); renderCrudMenuList();" class="text-rose-500 font-bold">Delete</button>
-        </div>
-      `).join('');
-    }
-    function saveMenuItem() {
-      const name = document.getElementById('menu-item-name').value.trim();
-      const price = parseFloat(document.getElementById('menu-item-price').value);
-      const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
-      if(!name || !price) return alert("Enter name and price!");
-      menuCatalog.push({ id: Date.now(), name, price, image });
-      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-      renderMenu(); renderCrudMenuList();
-      document.getElementById('menu-item-name').value = '';
-      document.getElementById('menu-item-price').value = '';
-      showToast("Saved", "Menu item added.");
-    }
-
-    function renderTableDropdown() {
-      document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-    }
-    function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
-    function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
-    function renderTableCrudList() {
-      document.getElementById('tables-list-container').innerHTML = tablesAndSpots.map(t => `
-        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${t.name}</span>
-          <button onclick="tablesAndSpots=tablesAndSpots.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots)); renderTableCrudList(); renderTableDropdown();" class="text-rose-500 font-bold">Delete</button>
-        </div>
-      `).join('');
-    }
-    function addNewTableOrSpot() {
-      const name = document.getElementById('new-spot-name').value.trim();
-      if(!name) return;
-      tablesAndSpots.push({ id: Date.now(), name, type: 'Dine-In' });
-      localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
-      document.getElementById('new-spot-name').value = '';
-      renderTableCrudList(); renderTableDropdown();
-    }
-    function generateSelectedTableQR() {
-      const selName = document.getElementById('table-select-dropdown').value;
-      const fullUrl = `${window.location.origin}/customer.html?table=${encodeURIComponent(selName)}`;
-      document.getElementById('qr-table-title').innerText = `${selName} QR`;
-      document.getElementById('qrcode-container').innerHTML = '';
-      new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 130, height: 130 });
-      document.getElementById('qr-modal').classList.remove('hidden');
-    }
-    function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
-    function printCartDirectReceipt() { if(currentCart.length===0) return alert("Cart empty!"); document.getElementById('receipt-modal').classList.remove('hidden'); }
-    function closeReceiptModal() { document.getElementById('receipt-modal').classList.add('hidden'); }
-
+    updateRestaurantHeaderUI();
     renderMenu();
     renderTableDropdown();
-    renderIncomingQueue();
+    fetchOrdersFromSheet();
+    renderKDS();
+    renderCreditDues();
+    renderAnalyticsView();
+    switchTab('pos');
   </script>
 </body>
 </html>
