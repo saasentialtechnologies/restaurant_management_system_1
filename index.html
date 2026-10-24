@@ -278,485 +278,499 @@
     <p>Powered by <b class="text-emerald-400">SaaSential Technologies Private Limited</b> | Contact: <b>+923267903486</b></p>
   </footer>
 
-  <script>
-    const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
+<script>
+  const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
 
-    async function pushOrderToSheet(order) {
-      try {
-        await fetch(SHEET_WEB_APP_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'addOrder', order: order })
-        });
-      } catch(e) {}
-    }
-
-    async function fetchOrdersFromSheet() {
-      try {
-        const res = await fetch(SHEET_WEB_APP_URL);
-        if(res.ok) {
-          const orders = await res.json();
-          if(Array.isArray(orders)) {
-            const active = orders.filter(o => o.status === 'Active');
-            localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
-            localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
-            renderIncomingQueue();
-            renderKDS();
-          }
-        }
-      } catch(e) {}
-    }
-
-    setInterval(fetchOrdersFromSheet, 4000);
-
-    let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
-      name: "Bundu Khan Restaurant",
-      branch: "GULBERG"
-    };
-
-    function updateRestaurantHeaderUI() {
-      document.getElementById('display-header-restaurant-name').innerHTML = `${restaurantProfile.name} <span class="text-emerald-400">RMS</span>`;
-      document.getElementById('display-header-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
-      document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
-      document.getElementById('receipt-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
-    }
-
-    function openRestaurantEditModal() {
-      document.getElementById('edit-rest-name').value = restaurantProfile.name;
-      document.getElementById('edit-branch-name').value = restaurantProfile.branch;
-      document.getElementById('restaurant-edit-modal').classList.remove('hidden');
-    }
-
-    function closeRestaurantEditModal() {
-      document.getElementById('restaurant-edit-modal').classList.add('hidden');
-    }
-
-    function saveRestaurantDetails() {
-      const newName = document.getElementById('edit-rest-name').value.trim();
-      const newBranch = document.getElementById('edit-branch-name').value.trim();
-      if(!newName) return alert("Please enter a valid restaurant name!");
-
-      restaurantProfile.name = newName;
-      restaurantProfile.branch = newBranch || "MAIN BRANCH";
-      localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
-
-      updateRestaurantHeaderUI();
-      closeRestaurantEditModal();
-      showToast("Updated!", "Restaurant profile saved.");
-    }
-
-    let currentCart = [];
-    let salesChartInstance = null;
-
-    let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
-      { id: 1, name: 'Table 1', type: 'Dine-In' },
-      { id: 2, name: 'Table 2', type: 'Dine-In' },
-      { id: 3, name: 'Table 3', type: 'Dine-In' }
-    ];
-
-    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 3, name: 'Zinger Burger Meal', price: 650, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
-    ];
-
-    function showToast(title, body) {
-      document.getElementById('toast-title').innerText = title;
-      document.getElementById('toast-body').innerText = body;
-      const t = document.getElementById('notification-toast');
-      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3500);
-    }
-
-    function openReceiptModalForOrder(order) {
-      document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
-      document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
-      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || 'Counter'}`;
-      document.getElementById('receipt-time').innerText = `Time: ${order.time}`;
-      document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
-      
-      const itemsContainer = document.getElementById('receipt-items-list');
-      itemsContainer.innerHTML = order.items.map(i => `
-        <div class="flex justify-between">
-          <span>${i.name} x${i.qty}</span>
-          <span>Rs. ${i.price * i.qty}</span>
-        </div>
-      `).join('');
-
-      document.getElementById('receipt-modal').classList.remove('hidden');
-    }
-
-    function closeReceiptModal() {
-      document.getElementById('receipt-modal').classList.add('hidden');
-    }
-
-    function printCartDirectReceipt() {
-      if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
-
-      const tempOrder = {
-        id: Math.floor(Math.random() * 8999 + 1000),
-        table: document.getElementById('table-select-dropdown').value,
-        waiterName: waiter,
-        items: [...currentCart],
-        totalAmount: total,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      openReceiptModalForOrder(tempOrder);
-    }
-
-    function printSpecificOrderReceipt(orderId) {
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      const ord = activeOrders.find(o => o.id === orderId);
-      if(ord) {
-        openReceiptModalForOrder(ord);
-      }
-    }
-
-    function checkoutOrder(type) {
-      if(currentCart.length === 0) return alert("Cart khali hai!");
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
-
-      const order = {
-        id: Math.floor(Math.random() * 8999 + 1000),
-        table: document.getElementById('table-select-dropdown').value,
-        waiterName: waiter,
-        items: [...currentCart],
-        totalAmount: total,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: type
-      };
-
-      if (type === 'credit') {
-        const custName = prompt("Customer Name for Udhaar Khata:") || "Walk-in Guest";
-        let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-        creditList.push({ ...order, customerName: custName });
-        localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
-        showToast("Udhaar Saved", `Saved for ${custName}`);
-        renderCreditDues();
-      } else {
-        processIncomingSyncedOrder(order);
-        openReceiptModalForOrder(order);
-      }
-
-      currentCart = [];
-      updateCartUI();
-    }
-
-    function processIncomingSyncedOrder(order) {
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      if(!activeOrders.some(o => o.id === order.id)) {
-        activeOrders.push(order);
-        localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
-        
-        let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-        kdsOrders.push(order);
-        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
-
-        renderIncomingQueue();
-        renderKDS();
-        showToast("Order Placed & Synced!", `#${order.id} (${order.table})`);
-
-        pushOrderToSheet(order);
-      }
-    }
-
-    function renderIncomingQueue() {
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      document.getElementById('incoming-count-badge').innerText = `${activeOrders.length} Active`;
-      const queue = document.getElementById('incoming-orders-queue');
-      
-      if (activeOrders.length === 0) {
-        queue.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p>`;
-        return;
-      }
-
-      queue.innerHTML = activeOrders.map(ord => `
-        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-xs">
-          <div class="flex justify-between items-center font-bold text-slate-900 mb-0.5">
-            <span>#${ord.id} - ${ord.table}</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
-              <button onclick="printSpecificOrderReceipt(${ord.id})" class="bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold"><i class="fa-solid fa-print"></i> Print</button>
-            </div>
-          </div>
-          <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-          <div class="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 border-t border-amber-200/60 pt-1">
-            <span>By: <b class="text-slate-800">${ord.waiterName || 'Counter'}</b></span>
-            <span>Time: ${ord.time}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderKDS() {
-      let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-      document.getElementById('kds-badge').innerText = kdsOrders.length;
-      const container = document.getElementById('kds-orders-container');
-      if (kdsOrders.length === 0) {
-        container.innerHTML = `<div class="col-span-full text-center text-slate-500 font-bold py-8">Kitchen Queue Clear.</div>`;
-        return;
-      }
-      container.innerHTML = kdsOrders.map(ord => `
-        <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-2xl shadow">
-          <div class="flex justify-between items-center mb-1 border-b border-slate-700 pb-2">
-            <span class="font-black text-white text-sm">#${ord.id}</span>
-            <span class="text-xs text-amber-400 font-bold">${ord.table}</span>
-          </div>
-          <p class="text-[10px] text-slate-400 mb-2">Taken By: <b class="text-emerald-400">${ord.waiterName || 'Counter'}</b></p>
-          <ul class="text-xs space-y-1 mb-3 text-slate-300">
-            ${ord.items.map(i => `<li class="flex justify-between"><span>${i.name}</span><b class="text-emerald-400">x${i.qty}</b></li>`).join('')}
-          </ul>
-          <button onclick="completeOrder(${ord.id})" class="w-full bg-emerald-500 active:bg-emerald-600 text-slate-950 font-black py-2.5 rounded-xl text-xs">MARK SERVED</button>
-        </div>
-      `).join('');
-    }
-
-    function completeOrder(id) {
-      let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-      const ord = kdsOrders.find(o => o.id === id);
-      kdsOrders = kdsOrders.filter(o => o.id !== id);
-      localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
-      
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      activeOrders = activeOrders.filter(o => o.id !== id);
-      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
-
-      if(ord) {
-        let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
-        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
-        showToast("Served & Cleared", `Order #${id} marked completed.`);
-      }
-
-      renderKDS();
-      renderIncomingQueue();
-      renderAnalyticsView();
-    }
-
-    function renderCreditDues() {
-      let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-      document.getElementById('credit-badge').innerText = creditList.length;
-      const totalUdhaar = creditList.reduce((sum, i) => sum + i.totalAmount, 0);
-      document.getElementById('total-udhaar-amount').innerText = `Rs. ${totalUdhaar.toLocaleString()}`;
-
-      const tbody = document.getElementById('credit-dues-tbody');
-      if (creditList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No pending credit dues.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = creditList.map(c => `
-        <tr class="border-b border-slate-200">
-          <td class="p-2 font-bold text-slate-900">${c.customerName}</td>
-          <td class="p-2 text-emerald-600 font-bold">${c.table}</td>
-          <td class="p-2 text-slate-700 font-semibold">${c.waiterName || 'Counter'}</td>
-          <td class="p-2 text-slate-600 truncate max-w-[120px]">${c.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
-          <td class="p-2 font-mono font-bold text-amber-600">Rs. ${c.totalAmount.toLocaleString()}</td>
-          <td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">Paid</button></td>
-        </tr>
-      `).join('');
-    }
-
-    function clearCredit(id) {
-      let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-      const item = creditList.find(c => c.id === id);
-      if(!item) return;
-      creditList = creditList.filter(c => c.id !== id);
-      localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
-
-      let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-      completedSales.push({ id: item.id, total: item.totalAmount, waiterName: item.waiterName, time: item.time });
-      localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
-
-      renderCreditDues();
-      renderAnalyticsView();
-      showToast("Cleared", "Amount added to sales.");
-    }
-
-    function renderAnalyticsView() {
-      let completedSalesList = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-      const totalRev = completedSalesList.reduce((sum, o) => sum + o.total, 0);
-      document.getElementById('branch-total-sales-stat').innerText = `Rs. ${totalRev.toLocaleString()}`;
-      document.getElementById('completed-orders-count').innerText = `${completedSalesList.length} Orders`;
-
-      const ctx = document.getElementById('branchSalesChartCanvas').getContext('2d');
-      if (salesChartInstance) salesChartInstance.destroy();
-      salesChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: completedSalesList.map(o => `#${o.id}`), datasets: [{ label: 'Sales (PKR)', data: completedSalesList.map(o => o.total), backgroundColor: '#10b981', borderRadius: 6 }] },
-        options: { responsive: true, maintainAspectRatio: false }
+  async function pushOrderToSheet(order) {
+    try {
+      await fetch(SHEET_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'addOrder', order: order })
       });
-    }
+    } catch(e) {}
+  }
 
-    function openMenuCrudModal() {
-      document.getElementById('menu-crud-modal').classList.remove('hidden');
-      renderCrudMenuList();
-    }
-    function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); resetMenuForm(); }
+  async function markOrderCompleteInSheet(orderId) {
+    try {
+      await fetch(SHEET_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'completeOrder', orderId: orderId })
+      });
+    } catch(e) {}
+  }
 
-    function resetMenuForm() {
-      document.getElementById('menu-item-id').value = '';
-      document.getElementById('menu-item-name').value = '';
-      document.getElementById('menu-item-price').value = '';
-      document.getElementById('menu-item-image').value = '';
-      document.getElementById('menu-modal-title').innerText = "Add Menu Item";
-    }
-
-    function saveMenuItem() {
-      const id = document.getElementById('menu-item-id').value;
-      const name = document.getElementById('menu-item-name').value.trim();
-      const price = parseFloat(document.getElementById('menu-item-price').value);
-      const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
-
-      if(!name || !price) return alert("Please enter valid name & price!");
-
-      if(id) {
-        const item = menuCatalog.find(m => m.id == id);
-        if(item) { item.name = name; item.price = price; item.image = image; }
-      } else {
-        menuCatalog.push({ id: Date.now(), name, price, image });
+  async function fetchOrdersFromSheet() {
+    try {
+      const res = await fetch(SHEET_WEB_APP_URL);
+      if(res.ok) {
+        const orders = await res.json();
+        if(Array.isArray(orders)) {
+          // Get already completed order IDs locally so they never pop back up
+          let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
+          
+          const active = orders.filter(o => o.status === 'Active' && !completedIds.includes(Number(o.id)));
+          localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
+          localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+          renderIncomingQueue();
+          renderKDS();
+        }
       }
+    } catch(e) {}
+  }
 
-      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-      renderMenu();
-      renderCrudMenuList();
-      resetMenuForm();
-      showToast("Saved!", "Menu item updated.");
-    }
+  setInterval(fetchOrdersFromSheet, 4000);
 
-    function editMenuItem(id) {
-      const item = menuCatalog.find(m => m.id == id);
-      if(!item) return;
-      document.getElementById('menu-item-id').value = item.id;
-      document.getElementById('menu-item-name').value = item.name;
-      document.getElementById('menu-item-price').value = item.price;
-      document.getElementById('menu-item-image').value = item.image;
-      document.getElementById('menu-modal-title').innerText = "Edit Menu Item";
-    }
+  let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
+    name: "Bundu Khan Restaurant",
+    branch: "GULBERG"
+  };
 
-    function deleteMenuItem(id) {
-      if(!confirm("Are you sure you want to delete this menu item?")) return;
-      menuCatalog = menuCatalog.filter(m => m.id != id);
-      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-      renderMenu();
-      renderCrudMenuList();
-      showToast("Deleted", "Menu item removed.");
-    }
+  function updateRestaurantHeaderUI() {
+    document.getElementById('display-header-restaurant-name').innerHTML = `${restaurantProfile.name} <span class="text-emerald-400">RMS</span>`;
+    document.getElementById('display-header-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+    document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
+    document.getElementById('receipt-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+  }
 
-    function renderCrudMenuList() {
-      document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
-        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <div class="flex items-center gap-2">
-            <img src="${m.image}" class="w-8 h-8 rounded-lg object-cover">
-            <div><p class="font-bold text-slate-800">${m.name}</p><p class="text-emerald-600 font-semibold">Rs. ${m.price}</p></div>
-          </div>
-          <div class="space-x-1">
-            <button onclick="editMenuItem(${m.id})" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px]">Edit</button>
-            <button onclick="deleteMenuItem(${m.id})" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px]">Delete</button>
-          </div>
-        </div>
-      `).join('');
-    }
+  function openRestaurantEditModal() {
+    document.getElementById('edit-rest-name').value = restaurantProfile.name;
+    document.getElementById('edit-branch-name').value = restaurantProfile.branch;
+    document.getElementById('restaurant-edit-modal').classList.remove('hidden');
+  }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
-      document.getElementById('view-' + tabId).classList.remove('hidden');
-      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
-      if(tabId === 'analytics') renderAnalyticsView();
-      if(tabId === 'credit') renderCreditDues();
-      if(tabId === 'kds') renderKDS();
-    }
+  function closeRestaurantEditModal() {
+    document.getElementById('restaurant-edit-modal').classList.add('hidden');
+  }
 
-    function renderTableDropdown() {
-      document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-    }
+  function saveRestaurantDetails() {
+    const newName = document.getElementById('edit-rest-name').value.trim();
+    const newBranch = document.getElementById('edit-branch-name').value.trim();
+    if(!newName) return alert("Please enter a valid restaurant name!");
 
-    function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
-    function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
-    function renderTableCrudList() {
-      document.getElementById('tables-list-container').innerHTML = tablesAndSpots.map(t => `
-        <div class="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl text-xs">
-          <span>${t.name} (${t.type})</span>
-          <button onclick="tablesAndSpots=tablesAndSpots.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots)); renderTableCrudList(); renderTableDropdown();" class="text-rose-500 font-bold">Delete</button>
-        </div>
-      `).join('');
-    }
-    function addNewTableOrSpot() {
-      const name = document.getElementById('new-spot-name').value.trim();
-      if(!name) return;
-      tablesAndSpots.push({ id: Date.now(), name, type: 'Dine-In' });
-      localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
-      document.getElementById('new-spot-name').value = '';
-      renderTableCrudList(); renderTableDropdown();
-    }
-
-    function generateSelectedTableQR() {
-      const selName = document.getElementById('table-select-dropdown').value;
-      const fullUrl = `${window.location.origin}/customer.html?branch=GULBERG&table=${encodeURIComponent(selName)}`;
-      document.getElementById('qr-table-title').innerText = `${selName} Standee QR`;
-      document.getElementById('qrcode-container').innerHTML = '';
-      new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 140, height: 140 });
-      document.getElementById('qr-modal').classList.remove('hidden');
-    }
-    function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
-
-    function exportSystemDataBackup() {
-      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, timestamp: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_GULBERG.json`; a.click();
-      showToast("Backup Downloaded", "JSON file saved.");
-    }
-
-    function importSystemDataRestore(e) {
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        showToast("Restored", "System restored!");
-        setTimeout(() => window.location.reload(), 1200);
-      };
-      reader.readAsText(file);
-    }
-
-    function renderMenu() {
-      document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
-        <div class="bg-slate-50 border border-slate-200 p-2 rounded-2xl flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform" onclick="addToCart(${m.id})">
-          <div class="h-20 sm:h-24 bg-slate-900 rounded-xl overflow-hidden mb-1.5"><img src="${m.image}" class="w-full h-full object-cover"></div>
-          <p class="font-bold text-[11px] sm:text-xs text-slate-800 leading-tight mb-1">${m.name}</p>
-          <p class="text-emerald-600 font-black text-xs">Rs. ${m.price}</p>
-        </div>
-      `).join('');
-    }
-
-    function addToCart(id) {
-      const item = menuCatalog.find(m => m.id === id);
-      const exist = currentCart.find(c => c.id === id);
-      if(exist) exist.qty++; else currentCart.push({ ...item, qty: 1 });
-      updateCartUI();
-    }
-
-    function updateCartUI() {
-      const list = document.getElementById('order-items-list');
-      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>`; }
-      else {
-        list.innerHTML = currentCart.map(c => `<div class="flex justify-between items-center text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
-      }
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      document.getElementById('bill-total').innerText = `Rs. ${total}`;
-    }
+    restaurantProfile.name = newName;
+    restaurantProfile.branch = newBranch || "MAIN BRANCH";
+    localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
 
     updateRestaurantHeaderUI();
-    renderMenu();
-    renderTableDropdown();
-    fetchOrdersFromSheet();
+    closeRestaurantEditModal();
+    showToast("Updated!", "Restaurant profile saved.");
+  }
+
+  let currentCart = [];
+  let salesChartInstance = null;
+
+  let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
+    { id: 1, name: 'Table 1', type: 'Dine-In' },
+    { id: 2, name: 'Table 2', type: 'Dine-In' },
+    { id: 3, name: 'Table 3', type: 'Dine-In' }
+  ];
+
+  let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
+    { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
+    { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+    { id: 3, name: 'Zinger Burger Meal', price: 650, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
+  ];
+
+  function showToast(title, body) {
+    document.getElementById('toast-title').innerText = title;
+    document.getElementById('toast-body').innerText = body;
+    const t = document.getElementById('notification-toast');
+    t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3500);
+  }
+
+  function openReceiptModalForOrder(order) {
+    document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
+    document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
+    document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || 'Counter'}`;
+    document.getElementById('receipt-time').innerText = `Time: ${order.time}`;
+    document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
+    
+    const itemsContainer = document.getElementById('receipt-items-list');
+    itemsContainer.innerHTML = order.items.map(i => `
+      <div class="flex justify-between">
+        <span>${i.name} x${i.qty}</span>
+        <span>Rs. ${i.price * i.qty}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('receipt-modal').classList.remove('hidden');
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receipt-modal').classList.add('hidden');
+  }
+
+  function printCartDirectReceipt() {
+    if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
+    const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
+    const tempOrder = {
+      id: Math.floor(Math.random() * 8999 + 1000),
+      table: document.getElementById('table-select-dropdown').value,
+      waiterName: waiter,
+      items: [...currentCart],
+      totalAmount: total,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    openReceiptModalForOrder(tempOrder);
+  }
+
+  function printSpecificOrderReceipt(orderId) {
+    let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+    const ord = activeOrders.find(o => o.id === orderId);
+    if(ord) {
+      openReceiptModalForOrder(ord);
+    }
+  }
+
+  function checkoutOrder(type) {
+    if(currentCart.length === 0) return alert("Cart khali hai!");
+    const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
+    const order = {
+      id: Math.floor(Math.random() * 8999 + 1000),
+      table: document.getElementById('table-select-dropdown').value,
+      waiterName: waiter,
+      items: [...currentCart],
+      totalAmount: total,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: type
+    };
+
+    if (type === 'credit') {
+      const custName = prompt("Customer Name for Udhaar Khata:") || "Walk-in Guest";
+      let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+      creditList.push({ ...order, customerName: custName });
+      localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
+      showToast("Udhaar Saved", `Saved for ${custName}`);
+      renderCreditDues();
+    } else {
+      processIncomingSyncedOrder(order);
+      openReceiptModalForOrder(order);
+    }
+
+    currentCart = [];
+    updateCartUI();
+  }
+
+  function processIncomingSyncedOrder(order) {
+    let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+    if(!activeOrders.some(o => o.id === order.id)) {
+      activeOrders.push(order);
+      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+      
+      let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+      kdsOrders.push(order);
+      localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
+
+      renderIncomingQueue();
+      renderKDS();
+      showToast("Order Placed & Synced!", `#${order.id} (${order.table})`);
+
+      pushOrderToSheet(order);
+    }
+  }
+
+  function renderIncomingQueue() {
+    let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+    document.getElementById('incoming-count-badge').innerText = `${activeOrders.length} Active`;
+    const queue = document.getElementById('incoming-orders-queue');
+    
+    if (activeOrders.length === 0) {
+      queue.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p>`;
+      return;
+    }
+
+    queue.innerHTML = activeOrders.map(ord => `
+      <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-xs">
+        <div class="flex justify-between items-center font-bold text-slate-900 mb-0.5">
+          <span>#${ord.id} - ${ord.table}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
+            <button onclick="printSpecificOrderReceipt(${ord.id})" class="bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold"><i class="fa-solid fa-print"></i> Print</button>
+          </div>
+        </div>
+        <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+        <div class="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 border-t border-amber-200/60 pt-1">
+          <span>By: <b class="text-slate-800">${ord.waiterName || 'Counter'}</b></span>
+          <span>Time: ${ord.time}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderKDS() {
+    let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+    document.getElementById('kds-badge').innerText = kdsOrders.length;
+    const container = document.getElementById('kds-orders-container');
+    if (kdsOrders.length === 0) {
+      container.innerHTML = `<div class="col-span-full text-center text-slate-500 font-bold py-8">Kitchen Queue Clear.</div>`;
+      return;
+    }
+    container.innerHTML = kdsOrders.map(ord => `
+      <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-2xl shadow">
+        <div class="flex justify-between items-center mb-1 border-b border-slate-700 pb-2">
+          <span class="font-black text-white text-sm">#${ord.id}</span>
+          <span class="text-xs text-amber-400 font-bold">${ord.table}</span>
+        </div>
+        <p class="text-[10px] text-slate-400 mb-2">Taken By: <b class="text-emerald-400">${ord.waiterName || 'Counter'}</b></p>
+        <ul class="text-xs space-y-1 mb-3 text-slate-300">
+          ${ord.items.map(i => `<li class="flex justify-between"><span>${i.name}</span><b class="text-emerald-400">x${i.qty}</b></li>`).join('')}
+        </ul>
+        <button onclick="completeOrder(${ord.id})" class="w-full bg-emerald-500 active:bg-emerald-600 text-slate-950 font-black py-2.5 rounded-xl text-xs">MARK SERVED</button>
+      </div>
+    `).join('');
+  }
+
+  function completeOrder(id) {
+    let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+    const ord = kdsOrders.find(o => o.id === id);
+    kdsOrders = kdsOrders.filter(o => o.id !== id);
+    localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
+    
+    let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+    activeOrders = activeOrders.filter(o => o.id !== id);
+    localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+
+    // Save ID in completed list so auto-poll never brings it back
+    let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
+    if(!completedIds.includes(Number(id))) {
+      completedIds.push(Number(id));
+      localStorage.setItem('pakrms_completed_ids', JSON.stringify(completedIds));
+    }
+
+    if(ord) {
+      let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+      completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
+      localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+      showToast("Served & Cleared", `Order #${id} marked completed.`);
+      
+      // Update Google Sheet status to Completed
+      markOrderCompleteInSheet(id);
+    }
+
     renderKDS();
+    renderIncomingQueue();
+    renderAnalyticsView();
+  }
+
+  function renderCreditDues() {
+    let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+    document.getElementById('credit-badge').innerText = creditList.length;
+    const totalUdhaar = creditList.reduce((sum, i) => sum + i.totalAmount, 0);
+    document.getElementById('total-udhaar-amount').innerText = `Rs. ${totalUdhaar.toLocaleString()}`;
+
+    const tbody = document.getElementById('credit-dues-tbody');
+    if (creditList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No pending credit dues.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = creditList.map(c => `
+      <tr class="border-b border-slate-200">
+        <td class="p-2 font-bold text-slate-900">${c.customerName}</td>
+        <td class="p-2 text-emerald-600 font-bold">${c.table}</td>
+        <td class="p-2 text-slate-700 font-semibold">${c.waiterName || 'Counter'}</td>
+        <td class="p-2 text-slate-600 truncate max-w-[120px]">${c.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
+        <td class="p-2 font-mono font-bold text-amber-600">Rs. ${c.totalAmount.toLocaleString()}</td>
+        <td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">Paid</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function clearCredit(id) {
+    let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
+    const item = creditList.find(c => c.id === id);
+    if(!item) return;
+    creditList = creditList.filter(c => c.id !== id);
+    localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
+
+    let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+    completedSales.push({ id: item.id, total: item.totalAmount, waiterName: item.waiterName, time: item.time });
+    localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+
     renderCreditDues();
     renderAnalyticsView();
-    switchTab('pos');
-  </script>
+    showToast("Cleared", "Amount added to sales.");
+  }
+
+  function renderAnalyticsView() {
+    let completedSalesList = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+    const totalRev = completedSalesList.reduce((sum, o) => sum + o.total, 0);
+    document.getElementById('branch-total-sales-stat').innerText = `Rs. ${totalRev.toLocaleString()}`;
+    document.getElementById('completed-orders-count').innerText = `${completedSalesList.length} Orders`;
+
+    const ctx = document.getElementById('branchSalesChartCanvas').getContext('2d');
+    if (salesChartInstance) salesChartInstance.destroy();
+    salesChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: completedSalesList.map(o => `#${o.id}`), datasets: [{ label: 'Sales (PKR)', data: completedSalesList.map(o => o.total), backgroundColor: '#10b981', borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  function openMenuCrudModal() {
+    document.getElementById('menu-crud-modal').classList.remove('hidden');
+    renderCrudMenuList();
+  }
+  function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); resetMenuForm(); }
+
+  function resetMenuForm() {
+    document.getElementById('menu-item-id').value = '';
+    document.getElementById('menu-item-name').value = '';
+    document.getElementById('menu-item-price').value = '';
+    document.getElementById('menu-item-image').value = '';
+    document.getElementById('menu-modal-title').innerText = "Add Menu Item";
+  }
+
+  function saveMenuItem() {
+    const id = document.getElementById('menu-item-id').value;
+    const name = document.getElementById('menu-item-name').value.trim();
+    const price = parseFloat(document.getElementById('menu-item-price').value);
+    const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
+
+    if(!name || !price) return alert("Please enter valid name & price!");
+
+    if(id) {
+      const item = menuCatalog.find(m => m.id == id);
+      if(item) { item.name = name; item.price = price; item.image = image; }
+    } else {
+      menuCatalog.push({ id: Date.now(), name, price, image });
+    }
+
+    localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+    renderMenu();
+    renderCrudMenuList();
+    resetMenuForm();
+    showToast("Saved!", "Menu item updated.");
+  }
+
+  function editMenuItem(id) {
+    const item = menuCatalog.find(m => m.id == id);
+    if(!item) return;
+    document.getElementById('menu-item-id').value = item.id;
+    document.getElementById('menu-item-name').value = item.name;
+    document.getElementById('menu-item-price').value = item.price;
+    document.getElementById('menu-item-image').value = item.image;
+    document.getElementById('menu-modal-title').innerText = "Edit Menu Item";
+  }
+
+  function deleteMenuItem(id) {
+    if(!confirm("Are you sure you want to delete this menu item?")) return;
+    menuCatalog = menuCatalog.filter(m => m.id != id);
+    localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+    renderMenu();
+    renderCrudMenuList();
+    showToast("Deleted", "Menu item removed.");
+  }
+
+  function renderCrudMenuList() {
+    document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
+      <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
+        <div class="flex items-center gap-2">
+          <img src="${m.image}" class="w-8 h-8 rounded-lg object-cover">
+          <div><p class="font-bold text-slate-800">${m.name}</p><p class="text-emerald-600 font-semibold">Rs. ${m.price}</p></div>
+        </div>
+        <div class="space-x-1">
+          <button onclick="editMenuItem(${m.id})" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px]">Edit</button>
+          <button onclick="deleteMenuItem(${m.id})" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px]">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
+    document.getElementById('view-' + tabId).classList.remove('hidden');
+    document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
+    if(tabId === 'analytics') renderAnalyticsView();
+    if(tabId === 'credit') renderCreditDues();
+    if(tabId === 'kds') renderKDS();
+  }
+
+  function renderTableDropdown() {
+    document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+  }
+
+  function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
+  function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
+  function renderTableCrudList() {
+    document.getElementById('tables-list-container').innerHTML = tablesAndSpots.map(t => `
+      <div class="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl text-xs">
+        <span>${t.name} (${t.type})</span>
+        <button onclick="tablesAndSpots=tablesAndSpots.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots)); renderTableCrudList(); renderTableDropdown();" class="text-rose-500 font-bold">Delete</button>
+      </div>
+    `).join('');
+  }
+  function addNewTableOrSpot() {
+    const name = document.getElementById('new-spot-name').value.trim();
+    if(!name) return;
+    tablesAndSpots.push({ id: Date.now(), name, type: 'Dine-In' });
+    localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
+    document.getElementById('new-spot-name').value = '';
+    renderTableCrudList(); renderTableDropdown();
+  }
+
+  function generateSelectedTableQR() {
+    const selName = document.getElementById('table-select-dropdown').value;
+    const fullUrl = `${window.location.origin}/customer.html?branch=GULBERG&table=${encodeURIComponent(selName)}`;
+    document.getElementById('qr-table-title').innerText = `${selName} Standee QR`;
+    document.getElementById('qrcode-container').innerHTML = '';
+    new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 140, height: 140 });
+    document.getElementById('qr-modal').classList.remove('hidden');
+  }
+  function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
+
+  function exportSystemDataBackup() {
+    const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, timestamp: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_GULBERG.json`; a.click();
+    showToast("Backup Downloaded", "JSON file saved.");
+  }
+
+  function importSystemDataRestore(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      showToast("Restored", "System restored!");
+      setTimeout(() => window.location.reload(), 1200);
+    };
+    reader.readAsText(file);
+  }
+
+  function renderMenu() {
+    document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
+      <div class="bg-slate-50 border border-slate-200 p-2 rounded-2xl flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform" onclick="addToCart(${m.id})">
+        <div class="h-20 sm:h-24 bg-slate-900 rounded-xl overflow-hidden mb-1.5"><img src="${m.image}" class="w-full h-full object-cover"></div>
+        <p class="font-bold text-[11px] sm:text-xs text-slate-800 leading-tight mb-1">${m.name}</p>
+        <p class="text-emerald-600 font-black text-xs">Rs. ${m.price}</p>
+      </div>
+    `).join('');
+  }
+
+  function addToCart(id) {
+    const item = menuCatalog.find(m => m.id === id);
+    const exist = currentCart.find(c => c.id === id);
+    if(exist) exist.qty++; else currentCart.push({ ...item, qty: 1 });
+    updateCartUI();
+  }
+
+  updateRestaurantHeaderUI();
+  renderMenu();
+  renderTableDropdown();
+  fetchOrdersFromSheet();
+  renderKDS();
+  renderCreditDues();
+  renderAnalyticsView();
+  switchTab('pos');
+</script>
 </body>
 </html>
