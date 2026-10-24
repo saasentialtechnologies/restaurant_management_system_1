@@ -21,7 +21,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- 1. RECEIPT MODAL -->
+  <!-- RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative">
       <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl no-print">&times;</button>
@@ -53,7 +53,7 @@
     </div>
   </div>
 
-  <!-- 2. TOAST NOTIFICATION -->
+  <!-- TOAST NOTIFICATION -->
   <div id="notification-toast" class="hidden fixed top-3 right-3 z-50 bg-slate-900 text-white p-3 rounded-xl shadow-xl flex items-center space-x-3">
     <div>
       <h4 id="toast-title" class="font-bold text-xs text-emerald-400">Notification</h4>
@@ -61,7 +61,7 @@
     </div>
   </div>
 
-  <!-- 3. RESTAURANT PROFILE EDIT MODAL -->
+  <!-- RESTAURANT PROFILE EDIT MODAL -->
   <div id="restaurant-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 relative">
       <button onclick="closeRestaurantEditModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <!-- 4. MENU CRUD MODAL -->
+  <!-- MENU CRUD MODAL -->
   <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -97,7 +97,7 @@
     </div>
   </div>
 
-  <!-- 5. TABLE CRUD MODAL -->
+  <!-- TABLE CRUD MODAL -->
   <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
       <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -110,26 +110,37 @@
     </div>
   </div>
 
-  <!-- 6. STOCK / INVENTORY MODAL -->
+  <!-- ADMIN PASSWORD MODAL FOR STOCK -->
+  <div id="admin-auth-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
+      <button onclick="closeAdminAuthModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-2"><i class="fa-solid fa-lock text-rose-600 mr-1"></i> Admin Authorization</h3>
+      <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock & Inventory (Default: admin123)</p>
+      <input type="password" id="admin-pass-input" placeholder="Enter Admin Password" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none mb-3 text-center">
+      <button onclick="verifyAdminPassword()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Verify & Open Stock</button>
+    </div>
+  </div>
+
+  <!-- STOCK / INVENTORY MODAL (ADMIN ONLY) -->
   <div id="stock-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeStockModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <div>
-        <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Rice & Stock Management</h3>
+        <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Admin Stock & Inventory Management</h3>
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
-          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Drinks)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Chicken / Legs / Chest)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
-            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 50)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
-            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / crates)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 100)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces / packets)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           </div>
-          <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock</button>
+          <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock Item</button>
         </div>
       </div>
       <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="stock-list-container"></div>
     </div>
   </div>
 
-  <!-- 7. QR MODAL -->
+  <!-- QR MODAL -->
   <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
       <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -154,7 +165,7 @@
 
       <div class="flex items-center space-x-1.5 flex-wrap gap-1">
         <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Menu</button>
-        <button onclick="openStockModal()" class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-boxes-stacked mr-1"></i> Stock</button>
+        <button onclick="promptAdminAuth()" class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-lock mr-1"></i> Stock (Admin)</button>
         <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
         <button onclick="exportSystemDataBackup()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-download"></i> Backup</button>
         <label class="bg-rose-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
@@ -197,7 +208,7 @@
               <input type="text" id="waiter-name-input" placeholder="Waiter Name" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
               <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
             </div>
-            <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments (e.g. Less spicy)" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+            <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
             
             <div class="flex justify-between text-base font-black">
               <span>Total:</span>
@@ -353,9 +364,11 @@
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
-      { id: 1, name: 'Basmati Rice', qty: 50, unit: 'kg' },
-      { id: 2, name: 'Cooking Oil', qty: 30, unit: 'liters' },
-      { id: 3, name: 'Chicken Meat', qty: 40, unit: 'kg' }
+      { id: 1, name: 'Basmati Rice', qty: 100, unit: 'kg' },
+      { id: 2, name: 'Chicken Whole', qty: 50, unit: 'pieces' },
+      { id: 3, name: 'Chicken Legs', qty: 30, unit: 'pieces' },
+      { id: 4, name: 'Chicken Chest', qty: 30, unit: 'pieces' },
+      { id: 5, name: 'Cooking Oil', qty: 40, unit: 'liters' }
     ];
 
     function showToast(title, body) {
@@ -490,6 +503,23 @@
       document.getElementById('bill-total').innerText = `Rs. ${total}`;
     }
 
+    function deductStockForOrder(items) {
+      items.forEach(i => {
+        let nameLower = i.name.toLowerCase();
+        stockCatalog.forEach(s => {
+          let sName = s.name.toLowerCase();
+          if(nameLower.includes('biryani') && sName.includes('rice')) {
+            s.qty = Math.max(0, s.qty - (0.5 * i.qty)); // e.g. 0.5kg rice per biryani
+          } else if(nameLower.includes('karahi') && sName.includes('chicken whole')) {
+            s.qty = Math.max(0, s.qty - (1 * i.qty));
+          } else if(nameLower.includes('burger') && sName.includes('chicken chest')) {
+            s.qty = Math.max(0, s.qty - (1 * i.qty));
+          }
+        });
+      });
+      localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
+    }
+
     function checkoutOrder(type) {
       if(currentCart.length === 0) return alert("Cart is empty!");
       const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -497,6 +527,8 @@
       const total = Math.max(0, subtotal - discount);
       const comments = document.getElementById('order-comments-input').value.trim();
       
+      deductStockForOrder(currentCart);
+
       if(type === 'credit') {
         const custName = prompt("Customer Name:") || "Guest";
         const order = {
@@ -707,7 +739,24 @@
       showToast("Saved", "Menu item added.");
     }
 
-    // STOCK / INVENTORY FUNCTIONS
+    // ADMIN AUTH & STOCK FUNCTIONS
+    function promptAdminAuth() {
+      document.getElementById('admin-pass-input').value = '';
+      document.getElementById('admin-auth-modal').classList.remove('hidden');
+    }
+    function closeAdminAuthModal() {
+      document.getElementById('admin-auth-modal').classList.add('hidden');
+    }
+    function verifyAdminPassword() {
+      const pass = document.getElementById('admin-pass-input').value;
+      if(pass === 'admin123') {
+        closeAdminAuthModal();
+        openStockModal();
+      } else {
+        alert("Incorrect Admin Password! (Default is admin123)");
+      }
+    }
+
     function openStockModal() { document.getElementById('stock-crud-modal').classList.remove('hidden'); renderStockList(); }
     function closeStockModal() { document.getElementById('stock-crud-modal').classList.add('hidden'); }
     function renderStockList() {
@@ -736,7 +785,7 @@
       document.getElementById('stock-item-qty').value = '';
       document.getElementById('stock-item-unit').value = '';
       renderStockList();
-      showToast("Stock Saved", "Rice & stock updated successfully.");
+      showToast("Stock Saved", "Rice & inventory updated successfully.");
     }
 
     function renderTableDropdown() {
