@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Bi-Directional Sync & Waiter Tracking</title>
+  <title>Enterprise RMS - Permanent Room Direct Auto-Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -154,12 +154,12 @@
         </div>
       </div>
 
-      <!-- PEERJS DIRECT SYNC BAR -->
+      <!-- PERMANENT AUTO SYNC STATUS -->
       <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
         <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
-          <span class="text-slate-400 text-[11px]">Sync ID:</span>
-          <span id="my-peer-id" class="font-mono text-emerald-400 font-bold select-all">Generating...</span>
-          <button onclick="connectToPeerPrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg">Join Room</button>
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="sync-dot"></span>
+          <span class="text-slate-300 font-bold text-[11px]" id="sync-status-text">Connecting Room...</span>
+          <button onclick="changeRoomPrompt()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-[10px] font-bold px-2 py-1 rounded-lg">Change Room</button>
         </div>
 
         <div class="flex items-center space-x-1.5">
@@ -204,7 +204,7 @@
             
             <h3 class="text-xs font-bold text-slate-700 mb-1.5 flex justify-between items-center">
               <span><i class="fa-solid fa-wifi text-emerald-500 mr-1"></i> Active Synced Orders:</span>
-              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Direct Connected</span>
+              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Auto Connected</span>
             </h3>
             <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p></div>
           </div>
@@ -276,27 +276,51 @@
   </footer>
 
   <script>
-    // 1. BI-DIRECTIONAL PEERJS SYNC (MOBILE <-> LAPTOP REALTIME SYNC)
-    let peer = new Peer();
+    // 1. PERMANENT STATIC ROOM AUTO-SYNC (NO UUIDs)
+    let syncRoomName = localStorage.getItem('pakrms_sync_room') || 'saasential-pos-gulberg';
+    let peer = null;
     let peerConnections = [];
 
-    peer.on('open', (id) => {
-      document.getElementById('my-peer-id').innerText = id;
-    });
+    function initPeerSync() {
+      const hostPeerId = syncRoomName + '-host';
+      peer = new Peer(hostPeerId);
 
-    peer.on('connection', (conn) => {
-      setupConnection(conn);
-    });
-
-    function connectToPeerPrompt() {
-      const targetId = prompt("Enter Target Device Sync ID:");
-      if(!targetId) return;
-      const conn = peer.connect(targetId);
-      conn.on('open', () => {
-        setupConnection(conn);
-        showToast("Connected!", "Direct Peer Sync Active.");
-        document.getElementById('p2p-status-label').innerText = "Sync Connected";
+      peer.on('open', (id) => {
+        updateSyncStatusUI(true, `Host Active: ${syncRoomName}`);
       });
+
+      peer.on('connection', (conn) => {
+        setupConnection(conn);
+        // Send full state to newly connected client
+        broadcastFullStateToPeers();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // If host ID exists, connect as a client peer
+          peer = new Peer();
+          peer.on('open', (id) => {
+            const conn = peer.connect(hostPeerId);
+            conn.on('open', () => {
+              setupConnection(conn);
+              updateSyncStatusUI(true, `Client Synced: ${syncRoomName}`);
+            });
+          });
+        } else {
+          updateSyncStatusUI(false, "Sync Offline");
+        }
+      });
+    }
+
+    function updateSyncStatusUI(isConnected, msg) {
+      const dot = document.getElementById('sync-dot');
+      const text = document.getElementById('sync-status-text');
+      text.innerText = msg;
+      if (isConnected) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+      }
     }
 
     function setupConnection(conn) {
@@ -304,24 +328,49 @@
         peerConnections.push(conn);
       }
       conn.on('data', (data) => {
-        if(data.type === 'NEW_ORDER') {
+        if (data.type === 'NEW_ORDER') {
           processIncomingSyncedOrder(data.order, false);
-        } else if(data.type === 'COMPLETE_ORDER') {
+        } else if (data.type === 'COMPLETE_ORDER') {
           completeOrderLocally(data.orderId, false);
+        } else if (data.type === 'SYNC_MENU') {
+          menuCatalog = data.menu;
+          localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+          renderMenu();
+        } else if (data.type === 'FULL_STATE') {
+          if (data.menu) { menuCatalog = data.menu; localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); }
+          if (data.activeOrders) { localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(data.activeOrders)); renderIncomingQueue(); }
+          if (data.kdsOrders) { localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(data.kdsOrders)); renderKDS(); }
         }
       });
     }
 
     function broadcastOrderToPeers(order) {
-      peerConnections.forEach(conn => {
-        if(conn.open) conn.send({ type: 'NEW_ORDER', order: order });
-      });
+      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'NEW_ORDER', order: order }); });
     }
 
     function broadcastCompleteToPeers(orderId) {
-      peerConnections.forEach(conn => {
-        if(conn.open) conn.send({ type: 'COMPLETE_ORDER', orderId: orderId });
-      });
+      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'COMPLETE_ORDER', orderId: orderId }); });
+    }
+
+    function broadcastMenuToPeers() {
+      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'SYNC_MENU', menu: menuCatalog }); });
+    }
+
+    function broadcastFullStateToPeers() {
+      const state = {
+        menu: menuCatalog,
+        activeOrders: JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [],
+        kdsOrders: JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || []
+      };
+      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'FULL_STATE', ...state }); });
+    }
+
+    function changeRoomPrompt() {
+      const rName = prompt("Enter Permanent Sync Room Name:", syncRoomName);
+      if (rName && rName.trim() !== '') {
+        localStorage.setItem('pakrms_sync_room', rName.trim().toLowerCase().replace(/\s+/g, '-'));
+        window.location.reload();
+      }
     }
 
     // RESTAURANT PROFILE EDITING
@@ -610,6 +659,7 @@
       renderMenu();
       renderCrudMenuList();
       resetMenuForm();
+      broadcastMenuToPeers();
       showToast("Saved!", "Menu item updated.");
     }
 
@@ -629,6 +679,7 @@
       localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
       renderMenu();
       renderCrudMenuList();
+      broadcastMenuToPeers();
       showToast("Deleted", "Menu item removed.");
     }
 
@@ -733,6 +784,7 @@
     renderCreditDues();
     renderAnalyticsView();
     switchTab('pos');
+    initPeerSync();
   </script>
 </body>
 </html>
