@@ -241,6 +241,17 @@
             localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
             localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
             
+            const creditOrders = orders.filter(o => o.status === 'Credit').map(o => ({
+              id: Number(o.id),
+              customerName: o.waiterName || 'Guest',
+              table: o.table,
+              totalAmount: Number(o.totalAmount),
+              items: o.items
+            }));
+            if(creditOrders.length > 0) {
+              localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
+            }
+
             const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => ({
               id: Number(o.id),
               total: Number(o.totalAmount),
@@ -252,6 +263,7 @@
             }
             renderIncomingQueue();
             renderKDS();
+            renderCreditDues();
           }
         }
       } catch(e) {}
@@ -319,7 +331,7 @@
     function openReceiptModalForOrder(order) {
       document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
       document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
-      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || 'Counter'}`;
+      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || order.customerName || 'Counter'}`;
       document.getElementById('receipt-time').innerText = `Time: ${order.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
       
@@ -398,22 +410,34 @@
     function checkoutOrder(type) {
       if(currentCart.length === 0) return alert("Cart is empty!");
       const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const order = {
-        id: Math.floor(Math.random() * 8999 + 1000),
-        table: document.getElementById('table-select-dropdown').value,
-        waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter',
-        items: [...currentCart],
-        totalAmount: total,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
+      
       if(type === 'credit') {
+        const custName = prompt("Customer Name:") || "Guest";
+        const order = {
+          id: Math.floor(Math.random() * 8999 + 1000),
+          table: document.getElementById('table-select-dropdown').value,
+          waiterName: custName,
+          items: [...currentCart],
+          totalAmount: total,
+          status: 'Credit',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
         let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-        credit.push({ ...order, customerName: prompt("Customer Name:") || "Guest" });
+        credit.push({ ...order, customerName: custName });
         localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
-        showToast("Saved", "Added to Udhaar");
+        pushOrderToSheet(order);
+        showToast("Saved", "Added to Udhaar & Synced");
         renderCreditDues();
       } else {
+        const order = {
+          id: Math.floor(Math.random() * 8999 + 1000),
+          table: document.getElementById('table-select-dropdown').value,
+          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter',
+          items: [...currentCart],
+          totalAmount: total,
+          status: 'Active',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
         let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
         active.push(order);
         localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
@@ -499,7 +523,7 @@
         return;
       }
       tbody.innerHTML = credit.map(c => `
-        <tr class="border-b"><td class="p-2 font-bold">${c.customerName}</td><td class="p-2">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
+        <tr class="border-b"><td class="p-2 font-bold">${c.customerName || c.waiterName}</td><td class="p-2">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
       `).join('');
     }
 
@@ -510,11 +534,13 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.waiterName, time: item.time });
+        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
+        markOrderCompleteInSheet(id);
       }
       renderCreditDues();
       renderAnalyticsView();
+      showToast("Cleared", "Udhaar paid & added to sales.");
     }
 
     function renderAnalyticsView() {
@@ -584,7 +610,7 @@
     }
     function generateSelectedTableQR() {
       const selName = document.getElementById('table-select-dropdown').value;
-      const fullUrl = `${window.location.origin}/customer.html?table=${encodeURIComponent(selName)}`;
+      let fullUrl = `${window.location.origin}/customer.html?table=${encodeURIComponent(selName)}`;
       document.getElementById('qr-table-title').innerText = `${selName} QR`;
       document.getElementById('qrcode-container').innerHTML = '';
       new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 130, height: 130 });
@@ -624,6 +650,7 @@
     renderTableDropdown();
     renderIncomingQueue();
     renderKDS();
+    renderCreditDues();
     fetchOrdersFromSheet();
   </script>
 </body>
