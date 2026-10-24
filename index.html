@@ -168,10 +168,10 @@
         <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl font-black text-lg"><i class="fa-solid fa-utensils"></i></div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-base sm:text-lg font-bold tracking-wide" id="display-header-restaurant-name">Bundu Khan <span class="text-emerald-400">RMS</span></h1>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide" id="display-header-restaurant-name">Dewan-e-Laziz Sajji and BBQ <span class="text-emerald-400">RMS</span></h1>
             <button onclick="openRestaurantEditModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Edit Restaurant Name"><i class="fa-solid fa-pen-to-square"></i></button>
           </div>
-          <p class="text-[10px] sm:text-xs text-slate-400" id="display-header-branch-name">Branch: GULBERG</p>
+          <p class="text-[10px] sm:text-xs text-slate-400" id="display-header-branch-name">Branch: Liauqat Chowk Sabzazar Lahore</p>
         </div>
       </div>
 
@@ -259,16 +259,28 @@
               <option value="datetime">Datetime Wise</option>
               <option value="month">Month Wise</option>
               <option value="year">Year Wise</option>
+              <option value="menu">Menu Wise</option>
             </select>
           </div>
         </div>
         <div class="h-72"><canvas id="branchSalesChartCanvas"></canvas></div>
+        <div id="menu-sales-table-container" class="hidden overflow-x-auto mt-4">
+          <h3 class="text-sm font-bold mb-2">Menu Items Sales Breakdown</h3>
+          <table class="w-full text-left text-xs border">
+            <thead><tr class="bg-slate-100 border-b"><th class="p-2">Item Name</th><th class="p-2">Total Qty Sold</th><th class="p-2">Total Revenue</th></tr></thead>
+            <tbody id="menu-sales-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
 
   <script>
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
+
+    setInterval(() => {
+      window.location.reload();
+    }, 300000);
 
     let audioCtx = null;
     let beepInterval = null;
@@ -363,7 +375,8 @@
               total: Number(o.totalAmount),
               waiterName: o.waiterName || 'Counter',
               time: o.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              timestamp: o.timestamp || new Date().toISOString()
+              timestamp: o.timestamp || new Date().toISOString(),
+              items: o.items || []
             }));
             if(completedFromSheet.length > 0) {
               localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedFromSheet));
@@ -723,7 +736,7 @@
 
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time, timestamp: ord.timestamp || new Date().toISOString() });
+        sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -752,7 +765,7 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time, timestamp: item.timestamp || new Date().toISOString() });
+        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -764,26 +777,54 @@
     function renderAnalyticsView() {
       let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
       let mode = document.getElementById('analytics-filter-mode').value;
+      const menuTableContainer = document.getElementById('menu-sales-table-container');
       
       let aggregatedData = {};
-      
-      sales.forEach(s => {
-        let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
-        let key = '';
-        if(mode === 'datetime') {
-          key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        } else if(mode === 'month') {
-          key = dateObj.toLocaleString([], { year: 'numeric', month: 'long' });
-        } else if(mode === 'year') {
-          key = dateObj.getFullYear().toString();
-        }
-        
-        if(!aggregatedData[key]) aggregatedData[key] = 0;
-        aggregatedData[key] += Number(s.total || 0);
-      });
+      let menuWiseData = {};
 
-      let labels = Object.keys(aggregatedData);
-      let dataValues = Object.values(aggregatedData);
+      if(mode === 'menu') {
+        menuTableContainer.classList.remove('hidden');
+        sales.forEach(s => {
+          if(Array.isArray(s.items)) {
+            s.items.forEach(i => {
+              if(!menuWiseData[i.name]) {
+                menuWiseData[i.name] = { qty: 0, revenue: 0 };
+              }
+              menuWiseData[i.name].qty += Number(i.qty || 0);
+              menuWiseData[i.name].revenue += Number(i.price || 0) * Number(i.qty || 0);
+            });
+          }
+        });
+
+        let menuNames = Object.keys(menuWiseData);
+        let menuQtys = menuNames.map(name => menuWiseData[name].qty);
+
+        document.getElementById('menu-sales-tbody').innerHTML = menuNames.length > 0 ? menuNames.map(name => `
+          <tr class="border-b"><td class="p-2 font-bold">${name}</td><td class="p-2">${menuWiseData[name].qty}</td><td class="p-2 font-bold text-emerald-600">Rs. ${menuWiseData[name].revenue}</td></tr>
+        `).join('') : `<tr><td colspan="3" class="text-center py-4 text-slate-400">No menu sales recorded yet.</td></tr>`;
+
+        labels = menuNames;
+        dataValues = menuQtys;
+      } else {
+        menuTableContainer.classList.add('hidden');
+        sales.forEach(s => {
+          let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
+          let key = '';
+          if(mode === 'datetime') {
+            key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          } else if(mode === 'month') {
+            key = dateObj.toLocaleString([], { year: 'numeric', month: 'long' });
+          } else if(mode === 'year') {
+            key = dateObj.getFullYear().toString();
+          }
+          
+          if(!aggregatedData[key]) aggregatedData[key] = 0;
+          aggregatedData[key] += Number(s.total || 0);
+        });
+
+        labels = Object.keys(aggregatedData);
+        dataValues = Object.values(aggregatedData);
+      }
 
       const ctx = document.getElementById('branchSalesChartCanvas').getContext('2d');
       if(salesChartInstance) salesChartInstance.destroy();
@@ -793,7 +834,7 @@
         data: {
           labels: labels.length > 0 ? labels : ['No Sales Yet'],
           datasets: [{
-            label: `Sales (${mode.toUpperCase()} WISE) in PKR`,
+            label: mode === 'menu' ? 'Menu Items Qty Sold' : `Sales (${mode.toUpperCase()} WISE) in PKR`,
             data: dataValues.length > 0 ? dataValues : [0],
             backgroundColor: '#10b981',
             borderColor: '#047857',
