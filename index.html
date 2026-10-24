@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Branch Master Terminal - Worldwide Cloud & Local Sync</title>
+  <title>Enterprise RMS - PeerJS Direct Sync & Menu CRUD</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
-  <!-- FREE FIREBASE SDK (REALTIME WORLDWIDE SYNC) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <!-- FREE PEERJS (NO ACCOUNT REQUIRED FOR REALTIME SYNC) -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <style>
     @media print {
@@ -35,7 +34,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased touch-action-manipulation select-none min-h-screen flex flex-col justify-between">
 
-  <!-- 1. RECEIPT & WHATSAPP BILL MODAL -->
+  <!-- 1. RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 relative">
       <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
@@ -78,33 +77,40 @@
     </div>
   </div>
 
-  <!-- 3. REQUISITION MODAL -->
-  <div id="requisition-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+  <!-- 3. RESTAURANT PROFILE EDIT MODAL -->
+  <div id="restaurant-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-5 relative">
-      <button onclick="closeRequisitionModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-2">Request Stock Approval from CEO</h3>
+      <button onclick="closeRestaurantEditModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-store text-emerald-600 mr-2"></i> Edit Restaurant Details</h3>
       <div class="space-y-3">
-        <input type="text" id="req-item-name" placeholder="Item Name (e.g. Cooking Oil)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
-        <input type="number" step="0.1" id="req-item-qty" placeholder="Quantity" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
-        <button onclick="submitStockRequisitionToCEO()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Send Request</button>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Restaurant Name</label>
+          <input type="text" id="edit-rest-name" placeholder="e.g. Bundu Khan Restaurant" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Branch Name</label>
+          <input type="text" id="edit-branch-name" placeholder="e.g. GULBERG" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+        </div>
+        <button onclick="saveRestaurantDetails()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Save Changes</button>
       </div>
     </div>
   </div>
 
-  <!-- 4. HIRING REQUEST MODAL -->
-  <div id="hiring-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-5 relative">
-      <button onclick="closeHiringModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-2">Request Staff Hiring Approval</h3>
-      <div class="space-y-3">
-        <input type="text" id="hire-staff-name" placeholder="Candidate Name" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
-        <select id="hire-staff-role" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-bold outline-none">
-          <option value="Waiter / Server">Waiter / Server</option>
-          <option value="Head Chef">Head Chef</option>
-          <option value="Cashier">Cashier</option>
-        </select>
-        <button onclick="submitHiringRequestToCEO()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-xs shadow">Submit Hiring Request</button>
+  <!-- 4. MENU CRUD MODAL -->
+  <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
+      <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+      <div>
+        <h3 class="text-base font-bold text-slate-900 mb-3" id="menu-modal-title">Add / Edit Menu Item</h3>
+        <div class="space-y-2 mb-4">
+          <input type="hidden" id="menu-item-id">
+          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. Chicken Karahi)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <input type="text" id="menu-item-image" placeholder="Image URL (Unsplash or direct image link)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+          <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs shadow">Save Item</button>
+        </div>
       </div>
+      <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="crud-menu-list-container"></div>
     </div>
   </div>
 
@@ -138,29 +144,26 @@
         <div class="flex items-center space-x-2">
           <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl font-black text-lg"><i class="fa-solid fa-utensils"></i></div>
           <div>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide">Bundu Khan <span class="text-emerald-400">RMS</span></h1>
-            <p class="text-[10px] sm:text-xs text-slate-400">Branch: GULBERG (Global Cloud Active)</p>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-bold tracking-wide" id="display-header-restaurant-name">Bundu Khan <span class="text-emerald-400">RMS</span></h1>
+              <button onclick="openRestaurantEditModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Edit Restaurant Name"><i class="fa-solid fa-pen-to-square"></i></button>
+            </div>
+            <p class="text-[10px] sm:text-xs text-slate-400" id="display-header-branch-name">Branch: GULBERG</p>
           </div>
         </div>
-        
-        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 sm:hidden">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Cloud Sync
-        </span>
       </div>
 
+      <!-- PEERJS DIRECT SYNC BAR -->
       <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
-        <div class="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700 flex-grow sm:flex-grow-0">
-          <span class="text-[11px] text-slate-300 font-bold whitespace-nowrap"><i class="fa-solid fa-user-tie text-emerald-400 mr-1"></i> Waiter:</span>
-          <select id="waiter-select-dropdown" onchange="changeActiveWaiter(this.value)" class="bg-slate-900 text-emerald-400 text-xs font-bold px-2 py-1 rounded outline-none border border-slate-700 w-full sm:w-auto">
-            <option value="Waiter 1 (Ali)">Waiter 1 (Ali)</option>
-            <option value="Waiter 2 (Usman)">Waiter 2 (Usman)</option>
-            <option value="Waiter 3 (Zain)">Waiter 3 (Zain)</option>
-            <option value="Waiter 4 (Hamza)">Waiter 4 (Hamza)</option>
-          </select>
+        <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
+          <span class="text-slate-400 text-[11px]">Sync ID:</span>
+          <span id="my-peer-id" class="font-mono text-emerald-400 font-bold select-all">Generating...</span>
+          <button onclick="connectToPeerPrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg">Join Room</button>
         </div>
 
         <div class="flex items-center space-x-1.5">
-          <button onclick="openTableCrudModal()" class="bg-slate-800 hover:bg-slate-750 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
+          <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
+          <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
           <button onclick="exportSystemDataBackup()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-download"></i> Backup</button>
           <label class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
         </div>
@@ -169,12 +172,10 @@
 
     <!-- NAVIGATION TABS -->
     <nav class="bg-white border-b border-slate-200 px-2 py-1.5 flex space-x-1.5 overflow-x-auto no-scrollbar">
-      <button id="btn-pos" onclick="switchTab('pos')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 active-nav-tab flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-cash-register"></i> POS & Global Sync</button>
+      <button id="btn-pos" onclick="switchTab('pos')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 active-nav-tab flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-cash-register"></i> POS Terminal</button>
       <button id="btn-kds" onclick="switchTab('kds')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-kitchen-set"></i> Kitchen KDS <span id="kds-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span></button>
       <button id="btn-credit" onclick="switchTab('credit')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-amber-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-book text-amber-500"></i> Udhaar Khata <span id="credit-badge" class="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span></button>
       <button id="btn-analytics" onclick="switchTab('analytics')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Analytics</button>
-      <button id="btn-inventory" onclick="switchTab('inventory')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-boxes-stacked"></i> Inventory</button>
-      <button id="btn-attendance" onclick="switchTab('attendance')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-user-check text-blue-600"></i> Attendance</button>
     </nav>
 
     <!-- MAIN VIEWS -->
@@ -201,8 +202,8 @@
             <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2.5 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
             
             <h3 class="text-xs font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-              <span><i class="fa-solid fa-globe text-emerald-500 mr-1"></i> Global Live Synced Orders:</span>
-              <span class="text-[10px] text-emerald-600 font-bold">Cloud Connected</span>
+              <span><i class="fa-solid fa-wifi text-emerald-500 mr-1"></i> P2P Active Synced Orders:</span>
+              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Direct Connected</span>
             </h3>
             <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p></div>
           </div>
@@ -212,10 +213,10 @@
               <span>Total Payable:</span>
               <span id="bill-total" class="text-emerald-600">Rs. 0</span>
             </div>
-            <button onclick="checkoutWaiterOrder('cash')" class="w-full bg-emerald-600 active:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-[0.99] transition-transform">
-              <i class="fa-solid fa-paper-plane mr-1"></i> Push Order (Worldwide Sync)
+            <button onclick="checkoutOrder('cash')" class="w-full bg-emerald-600 active:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-[0.99] transition-transform">
+              <i class="fa-solid fa-paper-plane mr-1"></i> Push Order (Direct Peer Sync)
             </button>
-            <button onclick="checkoutWaiterOrder('credit')" class="w-full bg-amber-600 active:bg-amber-700 text-white py-2.5 rounded-xl font-bold text-xs shadow">
+            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 active:bg-amber-700 text-white py-2.5 rounded-xl font-bold text-xs shadow">
               <i class="fa-solid fa-book mr-1"></i> Add to Udhaar Khata
             </button>
           </div>
@@ -239,7 +240,7 @@
             <thead>
               <tr class="bg-slate-100 text-slate-700">
                 <th class="p-2.5">Customer</th>
-                <th class="p-2.5">Waiter</th>
+                <th class="p-2.5">Table</th>
                 <th class="p-2.5">Items</th>
                 <th class="p-2.5">Amount (PKR)</th>
                 <th class="p-2.5 text-right">Action</th>
@@ -254,31 +255,12 @@
       <div id="view-analytics" class="tab-content hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
         <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
           <h2 class="text-base sm:text-lg font-bold text-slate-900"><i class="fa-solid fa-chart-line text-emerald-600 mr-2"></i> Branch Sales Performance</h2>
-          <button onclick="exportSalesToExcel()" class="bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow"><i class="fa-solid fa-file-excel mr-1"></i> Export Sales</button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div class="bg-slate-50 p-3.5 rounded-xl border"><p class="text-[10px] font-bold text-slate-500 uppercase">Total Revenue</p><h3 id="branch-total-sales-stat" class="text-xl font-black text-emerald-600 mt-1">Rs. 0</h3></div>
           <div class="bg-slate-50 p-3.5 rounded-xl border"><p class="text-[10px] font-bold text-slate-500 uppercase">Completed Orders</p><h3 id="completed-orders-count" class="text-xl font-black text-slate-900 mt-1">0 Orders</h3></div>
         </div>
         <div class="bg-slate-50 p-3 rounded-xl border relative h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
-      </div>
-
-      <!-- INVENTORY VIEW -->
-      <div id="view-inventory" class="tab-content hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
-          <h2 class="text-base sm:text-lg font-bold text-slate-900"><i class="fa-solid fa-boxes-stacked text-emerald-600 mr-2"></i> Stock Inventory Status</h2>
-          <button onclick="openRequisitionModal()" class="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow"><i class="fa-solid fa-paper-plane mr-1"></i> Request Stock</button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="inventory-items-grid"></div>
-      </div>
-
-      <!-- ATTENDANCE VIEW -->
-      <div id="view-attendance" class="tab-content hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
-          <h2 class="text-base sm:text-lg font-bold text-slate-900"><i class="fa-solid fa-user-check text-blue-600 mr-2"></i> Staff Attendance</h2>
-          <button onclick="openHiringModal()" class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow"><i class="fa-solid fa-user-plus mr-1"></i> Request Hiring</button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="staff-attendance-grid"></div>
       </div>
     </main>
   </div>
@@ -288,31 +270,88 @@
   </footer>
 
   <script>
-    // FREE DEMO FIREBASE CONFIG (Works out-of-the-box for real-time worldwide sync)
-    const firebaseConfig = {
-      databaseURL: "https://pakrms-demo-default-rtdb.firebaseio.com"
+    // 1. PEERJS DIRECT DEVICE-TO-DEVICE SYNC
+    let peer = new Peer();
+    let peerConnections = [];
+
+    peer.on('open', (id) => {
+      document.getElementById('my-peer-id').innerText = id;
+    });
+
+    peer.on('connection', (conn) => {
+      peerConnections.push(conn);
+      conn.on('data', (data) => {
+        if(data.type === 'NEW_ORDER') {
+          processIncomingSyncedOrder(data.order);
+        }
+      });
+    });
+
+    function connectToPeerPrompt() {
+      const targetId = prompt("Enter Main POS Sync ID:");
+      if(!targetId) return;
+      const conn = peer.connect(targetId);
+      conn.on('open', () => {
+        peerConnections.push(conn);
+        showToast("Connected!", "Direct Peer Sync Active.");
+        document.getElementById('p2p-status-label').innerText = "Sync Connected";
+      });
+      conn.on('data', (data) => {
+        if(data.type === 'NEW_ORDER') processIncomingSyncedOrder(data.order);
+      });
+    }
+
+    function broadcastOrderToPeers(order) {
+      peerConnections.forEach(conn => {
+        if(conn.open) conn.send({ type: 'NEW_ORDER', order: order });
+      });
+    }
+
+    // RESTAURANT PROFILE EDITING
+    let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
+      name: "Bundu Khan Restaurant",
+      branch: "GULBERG"
     };
-    
-    let db = null;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-    } catch(e) { console.log("Using Local Storage Sync Fallback"); }
 
-    const localSyncChannel = new BroadcastChannel('pakrms_drive_thru_bus');
-    let currentWaiter = localStorage.getItem('pakrms_waiter_name') || 'Waiter 1 (Ali)';
-    document.getElementById('waiter-select-dropdown').value = currentWaiter;
+    function updateRestaurantHeaderUI() {
+      document.getElementById('display-header-restaurant-name').innerHTML = `${restaurantProfile.name} <span class="text-emerald-400">RMS</span>`;
+      document.getElementById('display-header-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+      document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
+      document.getElementById('receipt-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+    }
 
-    function changeActiveWaiter(name) { currentWaiter = name; localStorage.setItem('pakrms_waiter_name', name); }
+    function openRestaurantEditModal() {
+      document.getElementById('edit-rest-name').value = restaurantProfile.name;
+      document.getElementById('edit-branch-name').value = restaurantProfile.branch;
+      document.getElementById('restaurant-edit-modal').classList.remove('hidden');
+    }
 
+    function closeRestaurantEditModal() {
+      document.getElementById('restaurant-edit-modal').classList.add('hidden');
+    }
+
+    function saveRestaurantDetails() {
+      const newName = document.getElementById('edit-rest-name').value.trim();
+      const newBranch = document.getElementById('edit-branch-name').value.trim();
+      if(!newName) return alert("Please enter a valid restaurant name!");
+
+      restaurantProfile.name = newName;
+      restaurantProfile.branch = newBranch || "MAIN BRANCH";
+      localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
+
+      updateRestaurantHeaderUI();
+      closeRestaurantEditModal();
+      showToast("Updated!", "Restaurant profile saved.");
+    }
+
+    // 2. MAIN SYSTEM LOGIC & MENU CRUD
     let currentCart = [];
     let salesChartInstance = null;
 
     let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
       { id: 1, name: 'Table 1', type: 'Dine-In' },
       { id: 2, name: 'Table 2', type: 'Dine-In' },
-      { id: 3, name: 'Table 3', type: 'Dine-In' },
-      { id: 4, name: 'Table 4', type: 'Dine-In' }
+      { id: 3, name: 'Table 3', type: 'Dine-In' }
     ];
 
     let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
@@ -333,20 +372,17 @@
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
       document.getElementById('view-' + tabId).classList.remove('hidden');
       document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
-      if(tabId === 'inventory') renderInventoryGrid();
       if(tabId === 'analytics') renderAnalyticsView();
-      if(tabId === 'attendance') renderAttendanceGrid();
       if(tabId === 'credit') renderCreditDues();
       if(tabId === 'kds') renderKDS();
     }
 
-    function checkoutWaiterOrder(type) {
+    function checkoutOrder(type) {
       if(currentCart.length === 0) return alert("Cart khali hai!");
       const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       
-      const waiterOrder = {
+      const order = {
         id: Math.floor(Math.random() * 8999 + 1000),
-        waiterName: currentWaiter,
         table: document.getElementById('table-select-dropdown').value,
         items: [...currentCart],
         totalAmount: total,
@@ -354,32 +390,36 @@
         type: type
       };
 
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      activeOrders.push(waiterOrder);
-      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
-
       if (type === 'credit') {
         const custName = prompt("Customer Name for Udhaar Khata:") || "Walk-in Guest";
         let creditList = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-        creditList.push({ ...waiterOrder, customerName: custName });
+        creditList.push({ ...order, customerName: custName });
         localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
-        showToast("Udhaar Saved", `Saved by ${currentWaiter}`);
+        showToast("Udhaar Saved", `Saved for ${custName}`);
         renderCreditDues();
       } else {
-        let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-        kdsOrders.push(waiterOrder);
-        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
-
-        if(db) db.ref('orders/' + waiterOrder.id).set(waiterOrder);
-        localSyncChannel.postMessage({ type: 'NEW_WAITER_ORDER', order: waiterOrder });
-
-        showToast("Worldwide Synced!", `#${waiterOrder.id} placed by ${currentWaiter}`);
-        renderKDS();
+        processIncomingSyncedOrder(order);
+        broadcastOrderToPeers(order);
       }
 
       currentCart = [];
       updateCartUI();
-      renderIncomingQueue();
+    }
+
+    function processIncomingSyncedOrder(order) {
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      if(!activeOrders.some(o => o.id === order.id)) {
+        activeOrders.push(order);
+        localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+        
+        let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+        kdsOrders.push(order);
+        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
+
+        renderIncomingQueue();
+        renderKDS();
+        showToast("Order Synced!", `#${order.id} for ${order.table}`);
+      }
     }
 
     function renderIncomingQueue() {
@@ -396,10 +436,10 @@
         <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-xs">
           <div class="flex justify-between font-bold text-slate-900 mb-0.5">
             <span>#${ord.id} - ${ord.table}</span>
-            <span class="text-emerald-700 font-extrabold">${ord.waiterName}</span>
+            <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
           </div>
           <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-          <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Total: Rs. ${ord.totalAmount} (${ord.time})</div>
+          <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Time: ${ord.time}</div>
         </div>
       `).join('');
     }
@@ -416,7 +456,7 @@
         <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-2xl shadow">
           <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
             <span class="font-black text-white text-sm">#${ord.id}</span>
-            <span class="text-xs text-amber-400 font-bold">${ord.waiterName} | ${ord.table}</span>
+            <span class="text-xs text-amber-400 font-bold">${ord.table}</span>
           </div>
           <ul class="text-xs space-y-1 mb-3 text-slate-300">
             ${ord.items.map(i => `<li class="flex justify-between"><span>${i.name}</span><b class="text-emerald-400">x${i.qty}</b></li>`).join('')}
@@ -436,7 +476,6 @@
         let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
         completedSales.push({ id: ord.id, total: ord.totalAmount, time: ord.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
-        if(db) db.ref('orders/' + id).remove();
         showToast("Served", `Rs. ${ord.totalAmount} added to sales.`);
       }
       renderKDS();
@@ -457,7 +496,7 @@
       tbody.innerHTML = creditList.map(c => `
         <tr class="border-b border-slate-200">
           <td class="p-2 font-bold text-slate-900">${c.customerName}</td>
-          <td class="p-2 text-emerald-600 font-bold">${c.waiterName}</td>
+          <td class="p-2 text-emerald-600 font-bold">${c.table}</td>
           <td class="p-2 text-slate-600 truncate max-w-[120px]">${c.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
           <td class="p-2 font-mono font-bold text-amber-600">Rs. ${c.totalAmount.toLocaleString()}</td>
           <td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">Paid</button></td>
@@ -496,34 +535,77 @@
       });
     }
 
-    function renderInventoryGrid() {
-      let inventoryStore = JSON.parse(localStorage.getItem('pakrms_inventory_GULBERG')) || [
-        { id: 1, name: "Chicken Stock", qty: 43.5, unit: "kg" },
-        { id: 2, name: "Basmati Rice", qty: 78.0, unit: "kg" },
-        { id: 3, name: "Cooking Oil", qty: 30.0, unit: "Litres" }
-      ];
-      document.getElementById('inventory-items-grid').innerHTML = inventoryStore.map(i => `
-        <div class="bg-slate-50 border p-3.5 rounded-2xl flex justify-between items-center">
-          <div><p class="text-[10px] font-bold text-slate-500 uppercase">${i.name}</p><p class="text-xl font-black text-slate-900 mt-0.5">${i.qty} <span class="text-xs font-normal">${i.unit}</span></p></div>
-          <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">In Stock</span>
+    // MENU CRUD FUNCTIONS
+    function openMenuCrudModal() {
+      document.getElementById('menu-crud-modal').classList.remove('hidden');
+      renderCrudMenuList();
+    }
+    function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); resetMenuForm(); }
+
+    function resetMenuForm() {
+      document.getElementById('menu-item-id').value = '';
+      document.getElementById('menu-item-name').value = '';
+      document.getElementById('menu-item-price').value = '';
+      document.getElementById('menu-item-image').value = '';
+      document.getElementById('menu-modal-title').innerText = "Add Menu Item";
+    }
+
+    function saveMenuItem() {
+      const id = document.getElementById('menu-item-id').value;
+      const name = document.getElementById('menu-item-name').value.trim();
+      const price = parseFloat(document.getElementById('menu-item-price').value);
+      const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
+
+      if(!name || !price) return alert("Please enter valid name & price!");
+
+      if(id) {
+        const item = menuCatalog.find(m => m.id == id);
+        if(item) { item.name = name; item.price = price; item.image = image; }
+      } else {
+        menuCatalog.push({ id: Date.now(), name, price, image });
+      }
+
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
+      renderCrudMenuList();
+      resetMenuForm();
+      showToast("Saved!", "Menu item updated.");
+    }
+
+    function editMenuItem(id) {
+      const item = menuCatalog.find(m => m.id == id);
+      if(!item) return;
+      document.getElementById('menu-item-id').value = item.id;
+      document.getElementById('menu-item-name').value = item.name;
+      document.getElementById('menu-item-price').value = item.price;
+      document.getElementById('menu-item-image').value = item.image;
+      document.getElementById('menu-modal-title').innerText = "Edit Menu Item";
+    }
+
+    function deleteMenuItem(id) {
+      if(!confirm("Are you sure you want to delete this menu item?")) return;
+      menuCatalog = menuCatalog.filter(m => m.id != id);
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
+      renderCrudMenuList();
+      showToast("Deleted", "Menu item removed.");
+    }
+
+    function renderCrudMenuList() {
+      document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
+        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
+          <div class="flex items-center gap-2">
+            <img src="${m.image}" class="w-8 h-8 rounded-lg object-cover">
+            <div><p class="font-bold text-slate-800">${m.name}</p><p class="text-emerald-600 font-semibold">Rs. ${m.price}</p></div>
+          </div>
+          <div class="space-x-1">
+            <button onclick="editMenuItem(${m.id})" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px]">Edit</button>
+            <button onclick="deleteMenuItem(${m.id})" class="bg-rose-600 text-white px-2 py-1 rounded text-[10px]">Delete</button>
+          </div>
         </div>
       `).join('');
     }
 
-    function renderAttendanceGrid() {
-      let staff = JSON.parse(localStorage.getItem('pakrms_staff_GULBERG')) || [
-        { id: 1, name: 'Ali Hassan', role: 'Head Chef', status: 'Checked In' },
-        { id: 2, name: 'Usman Ahmed', role: 'Waiter', status: 'Checked In' }
-      ];
-      document.getElementById('staff-attendance-grid').innerHTML = staff.map(s => `
-        <div class="bg-slate-50 border p-3.5 rounded-2xl flex justify-between items-center">
-          <div><h4 class="font-bold text-slate-900 text-xs sm:text-sm">${s.name}</h4><p class="text-[11px] text-slate-500">${s.role}</p></div>
-          <span class="px-2 py-1 rounded text-[10px] font-bold ${s.status==='Checked In'?'bg-emerald-100 text-emerald-700':'bg-slate-200 text-slate-600'}">${s.status}</span>
-        </div>
-      `).join('');
-    }
-
-    // ALL MODALS FUNCTIONS
     function renderTableDropdown() {
       document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
     }
@@ -557,16 +639,8 @@
     }
     function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
 
-    function openRequisitionModal() { document.getElementById('requisition-modal').classList.remove('hidden'); }
-    function closeRequisitionModal() { document.getElementById('requisition-modal').classList.add('hidden'); }
-    function submitStockRequisitionToCEO() { showToast("Requisition Sent", "Request sent to CEO."); closeRequisitionModal(); }
-
-    function openHiringModal() { document.getElementById('hiring-modal').classList.remove('hidden'); }
-    function closeHiringModal() { document.getElementById('hiring-modal').classList.add('hidden'); }
-    function submitHiringRequestToCEO() { showToast("Hiring Sent", "Request sent to CEO."); closeHiringModal(); }
-
     function exportSystemDataBackup() {
-      const backupData = { sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), timestamp: new Date().toISOString() };
+      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, timestamp: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_GULBERG.json`; a.click();
       showToast("Backup Downloaded", "JSON file saved.");
@@ -582,8 +656,6 @@
       };
       reader.readAsText(file);
     }
-
-    function exportSalesToExcel() { showToast("Exported", "Sales exported successfully."); }
 
     function renderMenu() {
       document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
@@ -612,28 +684,7 @@
       document.getElementById('bill-total').innerText = `Rs. ${total}`;
     }
 
-    // Worldwide Realtime Cloud Listener
-    if(db) {
-      db.ref('orders').on('child_added', (snapshot) => {
-        const order = snapshot.val();
-        if(order) {
-          let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-          if(!activeOrders.some(o => o.id === order.id)) {
-            activeOrders.push(order);
-            localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
-            
-            let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-            kdsOrders.push(order);
-            localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
-
-            renderIncomingQueue();
-            renderKDS();
-            showToast("Global Order Synced!", `#${order.id} taken by ${order.waiterName}`);
-          }
-        }
-      });
-    }
-
+    updateRestaurantHeaderUI();
     renderMenu();
     renderTableDropdown();
     renderIncomingQueue();
