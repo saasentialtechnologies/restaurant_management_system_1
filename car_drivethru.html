@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>In-Car Drive-Thru Ordering</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans select-none min-h-screen pb-20">
+
+  <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="bg-emerald-500 text-slate-950 w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl"><i class="fa-solid fa-car"></i></div>
+      <div>
+        <h1 class="font-bold text-base text-white" id="car-branch-display">DHA Phase 6 Branch</h1>
+        <p class="text-xs text-emerald-400 font-bold" id="car-spot-display">Car Spot 01</p>
+      </div>
+    </div>
+    <div id="car-status-badge" class="bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Parked & Ready
+    </div>
+  </header>
+
+  <main class="p-4 grid grid-cols-12 gap-4 max-w-7xl mx-auto">
+    <div class="col-span-12 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+      <h3 class="text-xs font-bold text-amber-400 mb-2 uppercase"><i class="fa-solid fa-id-card mr-1"></i> Vehicle Info</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input type="text" id="car-model" placeholder="Car Model (e.g. Civic / Corolla)" class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none focus:border-emerald-500">
+        <input type="text" id="car-color" placeholder="Color (e.g. White / Black)" class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none focus:border-emerald-500">
+        <input type="text" id="car-plate" placeholder="Plate Number (e.g. LEB-1234)" class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none focus:border-emerald-500">
+      </div>
+    </div>
+
+    <div class="col-span-12 lg:col-span-8 bg-slate-900/60 border border-slate-800 p-4 rounded-2xl">
+      <h2 class="text-xs font-bold text-slate-400 mb-3 uppercase">Select Dishes</h2>
+      <div id="car-menu-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1"></div>
+    </div>
+
+    <div class="col-span-12 lg:col-span-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
+      <div>
+        <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2 mb-3 flex justify-between items-center">
+          <span>In-Car Cart</span>
+          <span id="car-session-tag" class="text-[10px] text-slate-400 font-mono">--</span>
+        </h2>
+        <div id="car-cart-list" class="space-y-2 max-h-48 overflow-y-auto mb-3">
+          <p class="text-slate-500 text-xs text-center py-8">Tap menu dishes to add.</p>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-800 pt-3 space-y-3">
+        <div class="flex justify-between text-xl font-black text-white">
+          <span>Total:</span>
+          <span id="car-cart-total" class="text-emerald-400">Rs. 0</span>
+        </div>
+        <button onclick="placeCarDriveThruOrder()" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-black py-4 rounded-xl text-base shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-car-side"></i> Place In-Car Order
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const syncChannel = new BroadcastChannel('pakrms_drive_thru_bus');
+    const urlParams = new URLSearchParams(window.location.search);
+    const myBranch = urlParams.get('branch') || 'DHA Phase 6 Branch';
+    const myCarSpot = urlParams.get('spot') || 'Car Spot 01';
+
+    document.getElementById('car-branch-display').innerText = myBranch;
+    document.getElementById('car-spot-display').innerText = myCarSpot;
+
+    let myCarSessionId = localStorage.getItem('pakrms_car_session') || 'CAR_' + Math.floor(Math.random()*899999 + 100000);
+    localStorage.setItem('pakrms_car_session', myCarSessionId);
+    document.getElementById('car-session-tag').innerText = '#' + myCarSessionId.slice(-6);
+
+    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
+      { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Zinger Burger Meal', price: 650, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
+    ];
+
+    let carCart = [];
+
+    function renderMenu() {
+      document.getElementById('car-menu-grid').innerHTML = menuCatalog.map(m => `
+        <div onclick="addToCarCart(${m.id})" class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl cursor-pointer active:scale-95 transition-all flex flex-col justify-between">
+          <div class="h-28 bg-slate-900 rounded-lg overflow-hidden mb-2"><img src="${m.image}" class="w-full h-full object-cover"></div>
+          <p class="font-bold text-xs text-white">${m.name}</p>
+          <p class="text-emerald-400 font-black text-xs mt-1">Rs. ${m.price}</p>
+        </div>
+      `).join('');
+    }
+
+    function addToCarCart(id) {
+      const item = menuCatalog.find(m => m.id === id);
+      const exist = carCart.find(c => c.id === id);
+      if(exist) exist.qty++; else carCart.push({ ...item, qty: 1 });
+      updateCarCart();
+    }
+
+    function updateCarCart() {
+      const list = document.getElementById('car-cart-list');
+      if(carCart.length === 0) list.innerHTML = `<p class="text-slate-500 text-xs text-center py-8">Tap menu dishes to add.</p>`;
+      else {
+        list.innerHTML = carCart.map(c => `
+          <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-1.5">
+            <div><span class="font-bold text-white">${c.name}</span> <span class="text-emerald-400">x${c.qty}</span></div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-300">Rs. ${c.price * c.qty}</span>
+              <button onclick="carCart = carCart.filter(i=>i.id !== ${c.id}); updateCarCart();" class="text-rose-400 font-bold">&times;</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      const total = carCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      document.getElementById('car-cart-total').innerText = `Rs. ${total}`;
+    }
+
+    function placeCarDriveThruOrder() {
+      const model = document.getElementById('car-model').value.trim();
+      const color = document.getElementById('car-color').value.trim();
+      const plate = document.getElementById('car-plate').value.trim();
+
+      if(!model || !plate) return alert("Please fill in Car Model & Plate Number!");
+      if(carCart.length === 0) return alert("Select menu items first!");
+
+      const payload = {
+        type: 'NEW_CAR_DRIVETHRU_ORDER',
+        order: {
+          id: Math.floor(Math.random() * 8999 + 1000),
+          branch: myBranch,
+          spot: myCarSpot,
+          type: 'Drive-Thru',
+          sessionId: myCarSessionId,
+          carInfo: { model, color, plate },
+          items: [...carCart],
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      };
+
+      syncChannel.postMessage(payload);
+      document.getElementById('car-status-badge').innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Transmitted to Kitchen`;
+
+      carCart = []; updateCarCart();
+      alert(`Order placed at ${myBranch}! Runner will deliver to your car.`);
+    }
+
+    syncChannel.onmessage = (event) => {
+      const { type, order } = event.data;
+      if(order && order.sessionId === myCarSessionId && type === 'ORDER_COMPLETED_BY_KITCHEN') {
+        document.getElementById('car-status-badge').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Delivering to Car Now`;
+        alert("🚗 YOUR ORDER IS READY! A runner is walking to your vehicle.");
+      }
+    };
+
+    renderMenu();
+  </script>
+</body>
+</html>

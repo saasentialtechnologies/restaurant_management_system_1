@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bundu Khan Restaurant CEO Global HQ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .brand-logo-img { max-height: 100%; max-width: 100%; object-fit: contain; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- BRAND SETTINGS MODAL -->
+  <div id="brand-settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+      <button onclick="closeBrandModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+      <div class="flex items-center space-x-3 mb-4 border-b border-slate-800 pb-3">
+        <div class="bg-amber-500 text-slate-950 p-2.5 rounded-xl font-black text-lg"><i class="fa-solid fa-pen-nib"></i></div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Custom Brand & Identity</h3>
+          <p class="text-xs text-slate-400">Set Restaurant Name & Local Logo</p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Restaurant Name</label>
+          <input type="text" id="brand-name-input" placeholder="e.g. Bundu Khan Restaurant" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Select Logo File (PNG/JPG from Folder)</label>
+          <input type="file" id="brand-logo-file" accept="image/*" class="w-full text-xs text-slate-400 bg-slate-950 p-2 rounded-xl border border-slate-800">
+        </div>
+        <button onclick="saveBrandSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl text-xs">Update Brand Across All Pages</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD BRANCH MODAL -->
+  <div id="branch-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+      <button onclick="closeBranchModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+      <div class="flex items-center space-x-3 mb-4 border-b border-slate-800 pb-3">
+        <div class="bg-amber-500 text-slate-950 p-2.5 rounded-xl font-black text-lg"><i class="fa-solid fa-store"></i></div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Setup New Restaurant Branch</h3>
+          <p class="text-xs text-slate-400">Global Franchise Expansion</p>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div><label class="block text-xs font-bold text-slate-300 mb-1">Branch Code Key</label><input type="text" id="branch-id-input" placeholder="e.g. GULBERG" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none"></div>
+        <div><label class="block text-xs font-bold text-slate-300 mb-1">City / Region</label><input type="text" id="branch-city-input" placeholder="e.g. Lahore" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none"></div>
+        <div><label class="block text-xs font-bold text-slate-300 mb-1">Branch Manager</label><input type="text" id="branch-manager-input" placeholder="e.g. Muhammad Yaqub" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none"></div>
+        <button onclick="saveNewBranch()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl text-xs mt-2">Provision Branch Globally</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <!-- HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center shadow-2xl">
+      <div class="flex items-center space-x-3">
+        <div id="ceo-logo-container" class="bg-amber-500 text-slate-950 p-1 rounded-xl font-black text-xl overflow-hidden w-12 h-12 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <i class="fa-solid fa-crown" id="ceo-fallback-icon"></i>
+          <img id="ceo-logo-img" class="hidden brand-logo-img rounded-lg">
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-wide text-white" id="ceo-brand-title">Bundu Khan Restaurant <span class="text-amber-400">CEO Global HQ</span></h1>
+          <p class="text-xs text-slate-400">Overseas Command & Control Portal | Auto-Refresh: 1 Min</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button onclick="openBrandModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-sliders"></i> Brand Settings
+        </button>
+        <button onclick="openBranchModal()" class="bg-amber-500 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-plus"></i> Add New Branch
+        </button>
+      </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav class="bg-slate-900/60 border-b border-slate-800 px-4 py-2 flex space-x-2 overflow-x-auto">
+      <button onclick="switchTab('branches')" id="btn-branches" class="ceo-tab py-2 px-4 rounded-xl font-bold text-xs bg-amber-500 text-slate-950 flex items-center gap-2"><i class="fa-solid fa-store"></i> Active Branches & Controls</button>
+      <button onclick="switchTab('approvals')" id="btn-approvals" class="ceo-tab py-2 px-4 rounded-xl font-bold text-xs text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-check"></i> Pending Approvals <span id="pending-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span></button>
+    </nav>
+
+    <!-- MAIN HQ CONTENT -->
+    <main class="p-4 sm:p-6 max-w-7xl mx-auto">
+      <!-- 1. ACTIVE BRANCHES -->
+      <div id="view-branches" class="ceo-view space-y-6">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-white"><i class="fa-solid fa-globe text-amber-400 mr-2"></i> Overseas Multi-Branch Console</h2>
+            <p class="text-xs text-slate-400">Live order-calculated financials from all active branch locations</p>
+          </div>
+          <span id="branch-count-tag" class="bg-slate-800 text-amber-400 border border-slate-700 text-xs px-3 py-1 rounded-full font-bold">4 Branches</span>
+        </div>
+
+        <div id="branches-master-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+
+      <!-- 2. PENDING APPROVALS -->
+      <div id="view-approvals" class="ceo-view hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <h2 class="text-base font-bold text-amber-400 mb-4 border-b border-slate-800 pb-3"><i class="fa-solid fa-boxes-stacked mr-2"></i> Pending Stock Requisitions</h2>
+          <div id="stock-approvals-container" class="space-y-3"><p class="text-slate-500 text-xs text-center py-6">No pending stock requisitions.</p></div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <h2 class="text-base font-bold text-blue-400 mb-4 border-b border-slate-800 pb-3"><i class="fa-solid fa-user-plus mr-2"></i> Pending Staff Hiring Requests</h2>
+          <div id="hiring-approvals-container" class="space-y-3"><p class="text-slate-500 text-xs text-center py-6">No pending hiring requests.</p></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FOOTER CREDIT -->
+  <footer class="bg-slate-900 border-t border-slate-800 py-3 text-center text-xs text-slate-400">
+    <p>Powered by <b class="text-amber-400">SaaSential Technologies</b> | Contact: <b class="text-white">+923267903486</b></p>
+  </footer>
+
+  <script>
+    const syncChannel = new BroadcastChannel('pakrms_drive_thru_bus');
+
+    function openBrandModal() { document.getElementById('brand-settings-modal').classList.remove('hidden'); }
+    function closeBrandModal() { document.getElementById('brand-settings-modal').classList.add('hidden'); }
+
+    function saveBrandSettings() {
+      const name = document.getElementById('brand-name-input').value.trim();
+      const fileInput = document.getElementById('brand-logo-file');
+
+      if(name) {
+        localStorage.setItem('pakrms_custom_brand_name', name);
+      }
+
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          localStorage.setItem('pakrms_custom_brand_logo', e.target.result);
+          applyBrandIdentity();
+          syncChannel.postMessage({ type: 'BRAND_IDENTITY_UPDATED' });
+          closeBrandModal();
+          alert("🎉 Logo & Restaurant Name Updated Successfully!");
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        applyBrandIdentity();
+        syncChannel.postMessage({ type: 'BRAND_IDENTITY_UPDATED' });
+        closeBrandModal();
+        alert("🎉 Restaurant Name Updated!");
+      }
+    }
+
+    function applyBrandIdentity() {
+      const brandName = localStorage.getItem('pakrms_custom_brand_name') || 'Bundu Khan Restaurant';
+      const brandLogo = localStorage.getItem('pakrms_custom_brand_logo');
+
+      document.getElementById('ceo-brand-title').innerHTML = `${brandName} <span class="text-amber-400">CEO Global HQ</span>`;
+      
+      if(brandLogo) {
+        document.getElementById('ceo-fallback-icon').classList.add('hidden');
+        const img = document.getElementById('ceo-logo-img');
+        img.src = brandLogo;
+        img.classList.remove('hidden');
+      }
+    }
+
+    function getNormalizedBranchKey(rawName) {
+      if(!rawName) return 'GULBERG';
+      const clean = rawName.toUpperCase();
+      if(clean.includes('GULBERG')) return 'GULBERG';
+      if(clean.includes('DHA')) return 'DHA_PH6';
+      if(clean.includes('SADDAR')) return 'SADDAR';
+      if(clean.includes('KALA')) return 'KALA_SHAH_KAKU';
+      return clean.replace(/[^A-Z0-9]/g, '_');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.ceo-view').forEach(v => v.classList.add('hidden'));
+      document.querySelectorAll('.ceo-tab').forEach(t => { t.classList.remove('bg-amber-500', 'text-slate-950'); t.classList.add('text-slate-400'); });
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      activeBtn.classList.add('bg-amber-500', 'text-slate-950');
+      activeBtn.classList.remove('text-slate-400');
+
+      if (tabId === 'branches') renderBranches();
+      if (tabId === 'approvals') renderApprovals();
+    }
+
+    function openBranchModal() { document.getElementById('branch-modal').classList.remove('hidden'); }
+    function closeBranchModal() { document.getElementById('branch-modal').classList.add('hidden'); }
+
+    function saveNewBranch() {
+      const rawName = document.getElementById('branch-id-input').value.trim();
+      const city = document.getElementById('branch-city-input').value.trim();
+      const manager = document.getElementById('branch-manager-input').value.trim();
+
+      if(!rawName) return alert("Branch ID is required!");
+      const key = getNormalizedBranchKey(rawName);
+
+      let globalBranches = JSON.parse(localStorage.getItem('pakrms_global_branches')) || [];
+      globalBranches.push({ id: Date.now(), key, name: rawName, city: city || 'Pakistan', manager: manager || 'Branch Manager', status: 'Online' });
+      localStorage.setItem('pakrms_global_branches', JSON.stringify(globalBranches));
+
+      syncChannel.postMessage({ type: 'BRANCH_MANAGER_UPDATED' });
+      closeBranchModal(); renderBranches();
+      alert(`🎉 Branch "${rawName}" configured!`);
+    }
+
+    function updateBranchManager(id) {
+      let globalBranches = JSON.parse(localStorage.getItem('pakrms_global_branches')) || [];
+      const branch = globalBranches.find(b => b.id === id);
+      if(!branch) return;
+
+      const newManager = prompt("Enter New Branch Manager Name:", branch.manager);
+      if(newManager && newManager.trim() !== '') {
+        branch.manager = newManager.trim();
+        localStorage.setItem('pakrms_global_branches', JSON.stringify(globalBranches));
+        syncChannel.postMessage({ type: 'BRANCH_MANAGER_UPDATED' });
+        renderBranches();
+        alert(`Branch Manager updated to ${newManager}!`);
+      }
+    }
+
+    function deleteBranch(id) {
+      if(confirm("Delete branch globally?")) {
+        let globalBranches = JSON.parse(localStorage.getItem('pakrms_global_branches')) || [];
+        globalBranches = globalBranches.filter(b => b.id !== id);
+        localStorage.setItem('pakrms_global_branches', JSON.stringify(globalBranches));
+        renderBranches();
+      }
+    }
+
+    function renderBranches() {
+      let globalBranches = JSON.parse(localStorage.getItem('pakrms_global_branches')) || [
+        { id: 1, key: 'DHA_PH6', name: 'DHA Phase 6', city: 'Lahore', manager: 'Muhammad Yaqub', status: 'Online' },
+        { id: 2, key: 'GULBERG', name: 'Gulberg Main', city: 'Lahore', manager: 'Muhammad Javaid', status: 'Online' },
+        { id: 3, key: 'SADDAR', name: 'Saddar', city: 'Rawalpindi', manager: 'Haider Iqbal', status: 'Online' },
+        { id: 4, key: 'KALA_SHAH_KAKU', name: 'Kala Shah Kaku', city: 'Kala Shah Kaku', manager: 'Ahmad Farooq', status: 'Online' }
+      ];
+
+      document.getElementById('branch-count-tag').innerText = `${globalBranches.length} Active Branches`;
+      const grid = document.getElementById('branches-master-grid');
+
+      grid.innerHTML = globalBranches.map(b => {
+        const branchKey = b.key || getNormalizedBranchKey(b.name);
+        const branchSales = JSON.parse(localStorage.getItem(`pakrms_completed_sales_${branchKey}`)) || [];
+        const totalRev = branchSales.reduce((sum, o) => sum + o.total, 0);
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h3 class="font-bold text-white text-base">${b.name} Branch</h3>
+                  <p class="text-xs text-slate-400"><i class="fa-solid fa-location-dot text-amber-400 mr-1"></i> ${b.city}</p>
+                </div>
+                <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-1 rounded">${b.status}</span>
+              </div>
+
+              <div class="space-y-2 mb-4 text-xs">
+                <div class="flex justify-between items-center text-slate-300">
+                  <span>Manager:</span>
+                  <div class="flex items-center gap-1.5">
+                    <b class="text-amber-400">${b.manager}</b>
+                    <button onclick="updateBranchManager(${b.id})" class="text-slate-400 hover:text-white"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                  </div>
+                </div>
+                <div class="flex justify-between text-slate-300"><span>Calculated Sales:</span><b class="text-emerald-400 font-mono text-sm">Rs. ${totalRev.toLocaleString()}</b></div>
+                <div class="flex justify-between text-slate-300"><span>Orders Completed:</span><b class="text-slate-100 font-mono">${branchSales.length} Orders</b></div>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 flex gap-2">
+              <button onclick="window.open('index.html?branch=${encodeURIComponent(branchKey)}', '_blank')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs border border-slate-700">
+                Open Terminal
+              </button>
+              <button onclick="deleteBranch(${b.id})" class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-2 rounded-xl text-xs font-bold">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderApprovals() {
+      const reqs = JSON.parse(localStorage.getItem('pakrms_ceo_reqs')) || [];
+      const pendingStock = reqs.filter(r => r.status === 'PENDING');
+      
+      const hirings = JSON.parse(localStorage.getItem('pakrms_hiring_reqs')) || [];
+      const pendingHiring = hirings.filter(h => h.status === 'PENDING');
+
+      document.getElementById('pending-badge').innerText = pendingStock.length + pendingHiring.length;
+
+      const stockContainer = document.getElementById('stock-approvals-container');
+      if (pendingStock.length === 0) {
+        stockContainer.innerHTML = `<p class="text-slate-500 text-xs text-center py-6">No pending stock requisitions.</p>`;
+      } else {
+        stockContainer.innerHTML = pendingStock.map(r => `
+          <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center text-xs">
+            <div>
+              <span class="font-black text-sm text-white">${r.name} (${r.qty} ${r.unit})</span>
+              <p class="text-amber-400 mt-1 font-bold">Branch: ${r.branch}</p>
+            </div>
+            <button onclick="approveStockRequest(${r.id})" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black px-4 py-2 rounded-xl text-xs shadow">Approve & Dispatch Stock</button>
+          </div>
+        `).join('');
+      }
+
+      const hiringContainer = document.getElementById('hiring-approvals-container');
+      if (pendingHiring.length === 0) {
+        hiringContainer.innerHTML = `<p class="text-slate-500 text-xs text-center py-6">No pending hiring requests.</p>`;
+      } else {
+        hiringContainer.innerHTML = pendingHiring.map(h => `
+          <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center text-xs">
+            <div>
+              <span class="font-black text-sm text-white">${h.name} (${h.role})</span>
+              <p class="text-blue-400 mt-1 font-bold">Requested by Branch: ${h.branch}</p>
+            </div>
+            <button onclick="approveHiringRequest(${h.id})" class="bg-blue-600 hover:bg-blue-700 text-white font-black px-4 py-2 rounded-xl text-xs shadow">Approve & Add Staff</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function approveStockRequest(id) {
+      let reqs = JSON.parse(localStorage.getItem('pakrms_ceo_reqs')) || [];
+      const req = reqs.find(r => r.id === id);
+      if(!req) return;
+
+      req.status = 'APPROVED';
+      localStorage.setItem('pakrms_ceo_reqs', JSON.stringify(reqs));
+      syncChannel.postMessage({ type: 'STOCK_REQ_APPROVED', request: req });
+      alert(`✅ Stock Approved: ${req.qty} ${req.unit} ${req.name} sent to ${req.branch}!`);
+      renderApprovals();
+    }
+
+    function approveHiringRequest(id) {
+      let hirings = JSON.parse(localStorage.getItem('pakrms_hiring_reqs')) || [];
+      const req = hirings.find(h => h.id === id);
+      if(!req) return;
+
+      req.status = 'APPROVED';
+      localStorage.setItem('pakrms_hiring_reqs', JSON.stringify(hirings));
+      syncChannel.postMessage({ type: 'HIRING_REQ_APPROVED', request: req });
+      alert(`✅ Hiring Approved: ${req.name} (${req.role}) hired for ${req.branch}!`);
+      renderApprovals();
+    }
+
+    syncChannel.onmessage = (event) => {
+      if(event.data) {
+        if(event.data.type === 'NEW_STOCK_REQUISITION' || event.data.type === 'NEW_HIRING_REQUEST' || event.data.type === 'ORDER_COMPLETED_BY_KITCHEN') {
+          renderApprovals();
+          renderBranches();
+        } else if(event.data.type === 'BRAND_IDENTITY_UPDATED') {
+          applyBrandIdentity();
+        }
+      }
+    };
+
+    setInterval(() => {
+      renderBranches();
+      renderApprovals();
+    }, 60000);
+
+    applyBrandIdentity();
+    renderBranches();
+    renderApprovals();
+  </script>
+</body>
+</html>
