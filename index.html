@@ -21,6 +21,15 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
+  <!-- LOW STOCK ALERT BANNER -->
+  <div id="low-stock-banner" class="hidden bg-rose-600 text-white px-4 py-2 text-xs font-bold flex justify-between items-center shadow-lg animate-pulse">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation text-base"></i>
+      <span id="low-stock-alert-text">Warning: Some stock items are running low!</span>
+    </div>
+    <button onclick="switchTab('analytics')" class="bg-white text-rose-600 px-3 py-1 rounded-lg text-[10px] font-black">Check Inventory</button>
+  </div>
+
   <!-- RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative">
@@ -128,10 +137,10 @@
       <div>
         <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Admin Stock & Inventory Management</h3>
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
-          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Chicken / Legs / Chest)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Chicken)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
-            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 100)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
-            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces / packets)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 10)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           </div>
           <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock Item</button>
         </div>
@@ -239,15 +248,65 @@
       </div>
 
       <!-- ANALYTICS VIEW -->
-      <div id="view-analytics" class="tab-content hidden bg-white p-4 rounded-2xl border">
-        <h2 class="text-base font-bold mb-3">Branch Sales Performance</h2>
-        <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
+      <div id="view-analytics" class="tab-content hidden bg-white p-4 rounded-2xl border space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
+          <h2 class="text-base font-bold">Branch Sales Performance & Analytics</h2>
+          <div class="flex gap-2">
+            <select id="analytics-filter-mode" onchange="renderAnalyticsView()" class="bg-slate-50 border text-xs font-bold rounded-xl px-3 py-2 outline-none">
+              <option value="datetime">Datetime Wise</option>
+              <option value="month">Month Wise</option>
+              <option value="year">Year Wise</option>
+            </select>
+          </div>
+        </div>
+        <div class="h-72"><canvas id="branchSalesChartCanvas"></canvas></div>
       </div>
     </main>
   </div>
 
   <script>
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
+
+    // BEEP SOUND GENERATOR USING WEB AUDIO API
+    let audioCtx = null;
+    let beepInterval = null;
+
+    function playBeep() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880; // High beep frequency
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch(e) {}
+    }
+
+    function checkStockLevelsAndAlert() {
+      let stock = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [];
+      let lowItems = stock.filter(s => s.qty <= 5); // Threshold for low stock is 5 or below
+      let banner = document.getElementById('low-stock-banner');
+      
+      if(lowItems.length > 0) {
+        let names = lowItems.map(i => `${i.name} (${i.qty} ${i.unit})`).join(', ');
+        document.getElementById('low-stock-alert-text').innerText = `CRITICAL STOCK ALERT: ${names} running low!`;
+        banner.classList.remove('hidden');
+        
+        if(!beepInterval) {
+          beepInterval = setInterval(playBeep, 1500); // Continuous beep every 1.5 seconds
+        }
+      } else {
+        banner.classList.add('hidden');
+        if(beepInterval) {
+          clearInterval(beepInterval);
+          beepInterval = null;
+        }
+      }
+    }
 
     async function pushOrderToSheet(order) {
       try {
@@ -291,7 +350,8 @@
               totalAmount: Number(o.totalAmount),
               items: o.items,
               discount: o.discount || 0,
-              comments: o.comments || ''
+              comments: o.comments || '',
+              timestamp: o.timestamp || new Date().toISOString()
             }));
             localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
 
@@ -299,7 +359,8 @@
               id: Number(o.id),
               total: Number(o.totalAmount),
               waiterName: o.waiterName || 'Counter',
-              time: 'Synced'
+              time: o.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: o.timestamp || new Date().toISOString()
             }));
             if(completedFromSheet.length > 0) {
               localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedFromSheet));
@@ -364,11 +425,9 @@
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
-      { id: 1, name: 'Basmati Rice', qty: 100, unit: 'kg' },
-      { id: 2, name: 'Chicken Whole', qty: 50, unit: 'pieces' },
-      { id: 3, name: 'Chicken Legs', qty: 30, unit: 'pieces' },
-      { id: 4, name: 'Chicken Chest', qty: 30, unit: 'pieces' },
-      { id: 5, name: 'Cooking Oil', qty: 40, unit: 'liters' }
+      { id: 1, name: 'Basmati Rice', qty: 2, unit: 'kg' }, // Set low to test alert
+      { id: 2, name: 'Chicken Whole', qty: 3, unit: 'pieces' },
+      { id: 3, name: 'Cooking Oil', qty: 4, unit: 'liters' }
     ];
 
     function showToast(title, body) {
@@ -431,7 +490,8 @@
         totalAmount: total,
         discount: discount,
         comments: comments,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toISOString()
       };
 
       openReceiptModalForOrder(tempOrder);
@@ -509,15 +569,14 @@
         stockCatalog.forEach(s => {
           let sName = s.name.toLowerCase();
           if(nameLower.includes('biryani') && sName.includes('rice')) {
-            s.qty = Math.max(0, s.qty - (0.5 * i.qty)); // e.g. 0.5kg rice per biryani
-          } else if(nameLower.includes('karahi') && sName.includes('chicken whole')) {
-            s.qty = Math.max(0, s.qty - (1 * i.qty));
-          } else if(nameLower.includes('burger') && sName.includes('chicken chest')) {
+            s.qty = Math.max(0, s.qty - (0.5 * i.qty));
+          } else if(nameLower.includes('karahi') && sName.includes('chicken')) {
             s.qty = Math.max(0, s.qty - (1 * i.qty));
           }
         });
       });
       localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
+      checkStockLevelsAndAlert();
     }
 
     function checkoutOrder(type) {
@@ -540,7 +599,8 @@
           discount: discount,
           comments: comments,
           status: 'Credit',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toISOString()
         };
         let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
         credit.push({ ...order, customerName: custName });
@@ -558,7 +618,8 @@
           discount: discount,
           comments: comments,
           status: 'Active',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toISOString()
         };
         let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
         active.push(order);
@@ -657,7 +718,7 @@
 
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
+        sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time, timestamp: ord.timestamp || new Date().toISOString() });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -686,7 +747,7 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time });
+        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time, timestamp: item.timestamp || new Date().toISOString() });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -695,13 +756,48 @@
       showToast("Cleared", "Udhaar paid & added to sales.");
     }
 
+    // ADVANCED ANALYTICS (DATETIME, MONTH, YEAR WISE)
     function renderAnalyticsView() {
       let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+      let mode = document.getElementById('analytics-filter-mode').value;
+      
+      let aggregatedData = {};
+      
+      sales.forEach(s => {
+        let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
+        let key = '';
+        if(mode === 'datetime') {
+          key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } else if(mode === 'month') {
+          key = dateObj.toLocaleString([], { year: 'numeric', month: 'long' });
+        } else if(mode === 'year') {
+          key = dateObj.getFullYear().toString();
+        }
+        
+        if(!aggregatedData[key]) aggregatedData[key] = 0;
+        aggregatedData[key] += Number(s.total || 0);
+      });
+
+      let labels = Object.keys(aggregatedData);
+      let dataValues = Object.values(aggregatedData);
+
       const ctx = document.getElementById('branchSalesChartCanvas').getContext('2d');
       if(salesChartInstance) salesChartInstance.destroy();
+      
       salesChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: sales.map(s => `#${s.id}`), datasets: [{ label: 'Sales (PKR)', data: sales.map(s => s.total), backgroundColor: '#10b981' }] },
+        type: mode === 'datetime' ? 'line' : 'bar',
+        data: {
+          labels: labels.length > 0 ? labels : ['No Sales Yet'],
+          datasets: [{
+            label: `Sales (${mode.toUpperCase()} WISE) in PKR`,
+            data: dataValues.length > 0 ? dataValues : [0],
+            backgroundColor: '#10b981',
+            borderColor: '#047857',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          }]
+        },
         options: { responsive: true, maintainAspectRatio: false }
       });
     }
@@ -762,8 +858,8 @@
     function renderStockList() {
       document.getElementById('stock-list-container').innerHTML = stockCatalog.map(s => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <div><b class="text-slate-900">${s.name}</b>: <span class="text-amber-600 font-bold">${s.qty} ${s.unit}</span></div>
-          <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList();" class="text-rose-500 font-bold">Delete</button>
+          <div><b class="text-slate-900">${s.name}</b>: <span class="${s.qty <= 5 ? 'text-rose-600 font-black' : 'text-amber-600 font-bold'}">${s.qty} ${s.unit}</span></div>
+          <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList(); checkStockLevelsAndAlert();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
     }
@@ -785,7 +881,8 @@
       document.getElementById('stock-item-qty').value = '';
       document.getElementById('stock-item-unit').value = '';
       renderStockList();
-      showToast("Stock Saved", "Rice & inventory updated successfully.");
+      checkStockLevelsAndAlert();
+      showToast("Stock Saved", "Inventory updated successfully.");
     }
 
     function renderTableDropdown() {
@@ -853,6 +950,7 @@
     renderIncomingQueue();
     renderKDS();
     renderCreditDues();
+    checkStockLevelsAndAlert();
     fetchOrdersFromSheet();
   </script>
 </body>
