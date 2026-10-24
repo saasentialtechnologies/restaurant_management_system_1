@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Google Sheets Live Cloud Sync</title>
+  <title>Enterprise RMS - Full Featured Google Sheets Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -156,8 +156,8 @@
       <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
         <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="sync-dot"></span>
-          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Sheets Sync Live</span>
-          <button onclick="fetchOrdersFromSheet()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Sync Now</button>
+          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Sheets Live</span>
+          <button onclick="fetchOrdersFromSheet()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Sync</button>
         </div>
 
         <div class="flex items-center space-x-1.5">
@@ -279,7 +279,6 @@
   </footer>
 
   <script>
-    // GOOGLE SHEETS API ENDPOINT
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
 
     async function pushOrderToSheet(order) {
@@ -309,10 +308,8 @@
       } catch(e) {}
     }
 
-    // Auto-poll Google Sheet every 4 seconds
     setInterval(fetchOrdersFromSheet, 4000);
 
-    // RESTAURANT PROFILE EDITING
     let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
       name: "Bundu Khan Restaurant",
       branch: "GULBERG"
@@ -349,7 +346,6 @@
       showToast("Updated!", "Restaurant profile saved.");
     }
 
-    // MAIN SYSTEM LOGIC
     let currentCart = [];
     let salesChartInstance = null;
 
@@ -595,7 +591,6 @@
       });
     }
 
-    // MENU CRUD FUNCTIONS
     function openMenuCrudModal() {
       document.getElementById('menu-crud-modal').classList.remove('hidden');
       renderCrudMenuList();
@@ -746,7 +741,7 @@
 
     function updateCartUI() {
       const list = document.getElementById('order-items-list');
-      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>'; }
+      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>`; }
       else {
         list.innerHTML = currentCart.map(c => `<div class="flex justify-between items-center text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
       }
