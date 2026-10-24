@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - PeerJS Direct Sync & Menu CRUD</title>
+  <title>Enterprise RMS - Bi-Directional Sync & Waiter Tracking</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
-  <!-- FREE PEERJS (NO ACCOUNT REQUIRED FOR REALTIME SYNC) -->
+  <!-- FREE PEERJS FOR REALTIME SYNC -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <style>
@@ -43,6 +43,7 @@
           <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Bundu Khan Restaurant</h3>
           <p id="receipt-branch-name" class="text-[10px] text-slate-500">Branch: GULBERG</p>
           <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Order #1001</p>
+          <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Taken By: Counter</p>
           <p id="receipt-time" class="text-[10px] text-slate-400">Time: 12:00 PM</p>
         </div>
         <div id="receipt-items-list" class="space-y-1 border-b pb-2"></div>
@@ -202,13 +203,17 @@
             <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2.5 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
             
             <h3 class="text-xs font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-              <span><i class="fa-solid fa-wifi text-emerald-500 mr-1"></i> P2P Active Synced Orders:</span>
+              <span><i class="fa-solid fa-wifi text-emerald-500 mr-1"></i> Active Synced Orders:</span>
               <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Direct Connected</span>
             </h3>
             <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p></div>
           </div>
 
           <div class="border-t pt-2.5 space-y-2 mt-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Order Taken By / Waiter Name</label>
+              <input type="text" id="waiter-name-input" placeholder="e.g. Ali / Counter" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
+            </div>
             <div class="flex justify-between text-base sm:text-lg font-black text-slate-900">
               <span>Total Payable:</span>
               <span id="bill-total" class="text-emerald-600">Rs. 0</span>
@@ -241,6 +246,7 @@
               <tr class="bg-slate-100 text-slate-700">
                 <th class="p-2.5">Customer</th>
                 <th class="p-2.5">Table</th>
+                <th class="p-2.5">Taken By</th>
                 <th class="p-2.5">Items</th>
                 <th class="p-2.5">Amount (PKR)</th>
                 <th class="p-2.5 text-right">Action</th>
@@ -270,7 +276,7 @@
   </footer>
 
   <script>
-    // 1. PEERJS DIRECT DEVICE-TO-DEVICE SYNC
+    // 1. BI-DIRECTIONAL PEERJS SYNC (MOBILE <-> LAPTOP REALTIME SYNC)
     let peer = new Peer();
     let peerConnections = [];
 
@@ -279,31 +285,42 @@
     });
 
     peer.on('connection', (conn) => {
-      peerConnections.push(conn);
-      conn.on('data', (data) => {
-        if(data.type === 'NEW_ORDER') {
-          processIncomingSyncedOrder(data.order);
-        }
-      });
+      setupConnection(conn);
     });
 
     function connectToPeerPrompt() {
-      const targetId = prompt("Enter Main POS Sync ID:");
+      const targetId = prompt("Enter Target Device Sync ID:");
       if(!targetId) return;
       const conn = peer.connect(targetId);
       conn.on('open', () => {
-        peerConnections.push(conn);
+        setupConnection(conn);
         showToast("Connected!", "Direct Peer Sync Active.");
         document.getElementById('p2p-status-label').innerText = "Sync Connected";
       });
+    }
+
+    function setupConnection(conn) {
+      if(!peerConnections.some(c => c.peer === conn.peer)) {
+        peerConnections.push(conn);
+      }
       conn.on('data', (data) => {
-        if(data.type === 'NEW_ORDER') processIncomingSyncedOrder(data.order);
+        if(data.type === 'NEW_ORDER') {
+          processIncomingSyncedOrder(data.order, false);
+        } else if(data.type === 'COMPLETE_ORDER') {
+          completeOrderLocally(data.orderId, false);
+        }
       });
     }
 
     function broadcastOrderToPeers(order) {
       peerConnections.forEach(conn => {
         if(conn.open) conn.send({ type: 'NEW_ORDER', order: order });
+      });
+    }
+
+    function broadcastCompleteToPeers(orderId) {
+      peerConnections.forEach(conn => {
+        if(conn.open) conn.send({ type: 'COMPLETE_ORDER', orderId: orderId });
       });
     }
 
@@ -380,10 +397,12 @@
     function checkoutOrder(type) {
       if(currentCart.length === 0) return alert("Cart khali hai!");
       const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
       const order = {
         id: Math.floor(Math.random() * 8999 + 1000),
         table: document.getElementById('table-select-dropdown').value,
+        waiterName: waiter,
         items: [...currentCart],
         totalAmount: total,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -398,15 +417,14 @@
         showToast("Udhaar Saved", `Saved for ${custName}`);
         renderCreditDues();
       } else {
-        processIncomingSyncedOrder(order);
-        broadcastOrderToPeers(order);
+        processIncomingSyncedOrder(order, true);
       }
 
       currentCart = [];
       updateCartUI();
     }
 
-    function processIncomingSyncedOrder(order) {
+    function processIncomingSyncedOrder(order, isLocalSender = false) {
       let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
       if(!activeOrders.some(o => o.id === order.id)) {
         activeOrders.push(order);
@@ -418,7 +436,11 @@
 
         renderIncomingQueue();
         renderKDS();
-        showToast("Order Synced!", `#${order.id} for ${order.table}`);
+        showToast("Order Synced!", `#${order.id} (${order.table}) by ${order.waiterName}`);
+
+        if(isLocalSender) {
+          broadcastOrderToPeers(order);
+        }
       }
     }
 
@@ -439,7 +461,10 @@
             <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
           </div>
           <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
-          <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Time: ${ord.time}</div>
+          <div class="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 border-t border-amber-200/60 pt-1">
+            <span>By: <b class="text-slate-800">${ord.waiterName || 'Counter'}</b></span>
+            <span>Time: ${ord.time}</span>
+          </div>
         </div>
       `).join('');
     }
@@ -454,10 +479,11 @@
       }
       container.innerHTML = kdsOrders.map(ord => `
         <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-2xl shadow">
-          <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+          <div class="flex justify-between items-center mb-1 border-b border-slate-700 pb-2">
             <span class="font-black text-white text-sm">#${ord.id}</span>
             <span class="text-xs text-amber-400 font-bold">${ord.table}</span>
           </div>
+          <p class="text-[10px] text-slate-400 mb-2">Taken By: <b class="text-emerald-400">${ord.waiterName || 'Counter'}</b></p>
           <ul class="text-xs space-y-1 mb-3 text-slate-300">
             ${ord.items.map(i => `<li class="flex justify-between"><span>${i.name}</span><b class="text-emerald-400">x${i.qty}</b></li>`).join('')}
           </ul>
@@ -467,18 +493,32 @@
     }
 
     function completeOrder(id) {
+      completeOrderLocally(id, true);
+    }
+
+    function completeOrderLocally(id, shouldBroadcast = false) {
       let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
       const ord = kdsOrders.find(o => o.id === id);
       kdsOrders = kdsOrders.filter(o => o.id !== id);
       localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
       
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      activeOrders = activeOrders.filter(o => o.id !== id);
+      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
+
       if(ord) {
         let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        completedSales.push({ id: ord.id, total: ord.totalAmount, time: ord.time });
+        completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
         showToast("Served", `Rs. ${ord.totalAmount} added to sales.`);
       }
+
+      if(shouldBroadcast) {
+        broadcastCompleteToPeers(id);
+      }
+
       renderKDS();
+      renderIncomingQueue();
       renderAnalyticsView();
     }
 
@@ -490,13 +530,14 @@
 
       const tbody = document.getElementById('credit-dues-tbody');
       if (creditList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">No pending credit dues.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No pending credit dues.</td></tr>`;
         return;
       }
       tbody.innerHTML = creditList.map(c => `
         <tr class="border-b border-slate-200">
           <td class="p-2 font-bold text-slate-900">${c.customerName}</td>
           <td class="p-2 text-emerald-600 font-bold">${c.table}</td>
+          <td class="p-2 text-slate-700 font-semibold">${c.waiterName || 'Counter'}</td>
           <td class="p-2 text-slate-600 truncate max-w-[120px]">${c.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
           <td class="p-2 font-mono font-bold text-amber-600">Rs. ${c.totalAmount.toLocaleString()}</td>
           <td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">Paid</button></td>
@@ -512,7 +553,7 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditList));
 
       let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-      completedSales.push({ id: item.id, total: item.totalAmount, time: item.time });
+      completedSales.push({ id: item.id, total: item.totalAmount, waiterName: item.waiterName, time: item.time });
       localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
 
       renderCreditDues();
