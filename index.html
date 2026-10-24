@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Cross-Device Realtime Cloud Relay</title>
+  <title>Enterprise RMS - Google Sheets Live Cloud Sync</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -152,12 +152,12 @@
         </div>
       </div>
 
-      <!-- CLOUD SYNC BAR -->
+      <!-- GOOGLE SHEETS LIVE SYNC BAR -->
       <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
         <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="sync-dot"></span>
-          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Cloud Sync Live</span>
-          <button onclick="fetchCloudData()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Force Sync</button>
+          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Sheets Sync Live</span>
+          <button onclick="fetchOrdersFromSheet()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Sync Now</button>
         </div>
 
         <div class="flex items-center space-x-1.5">
@@ -201,10 +201,10 @@
             <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2.5 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
             
             <h3 class="text-xs font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-              <span><i class="fa-solid fa-cloud text-emerald-500 mr-1"></i> Synced Orders Queue:</span>
-              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Cloud Connected</span>
+              <span><i class="fa-solid fa-table text-emerald-500 mr-1"></i> Google Sheets Queue:</span>
+              <span class="text-[10px] text-emerald-600 font-bold" id="p2p-status-label">Connected</span>
             </h3>
-            <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">No active synced orders...</p></div>
+            <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"><p class="text-slate-400 text-xs text-center py-3">Loading from sheet...</p></div>
           </div>
 
           <div class="border-t pt-2.5 space-y-2 mt-3">
@@ -279,48 +279,38 @@
   </footer>
 
   <script>
-    // REAL-TIME CLOUD RELAY AGENT FOR LAPTOP & MOBILE CROSS-SYNC
-    const RELAY_ENDPOINT = 'https://api.reststorage.com/saasential-pos-gulberg';
-    let isCloudUpdating = false;
+    // GOOGLE SHEETS API ENDPOINT
+    const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
 
-    async function syncPushToCloud() {
-      if (isCloudUpdating) return;
-      isCloudUpdating = true;
-      const statePayload = {
-        activeOrders: JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [],
-        kdsOrders: JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [],
-        sales: JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [],
-        menu: menuCatalog,
-        timestamp: Date.now()
-      };
-
+    async function pushOrderToSheet(order) {
       try {
-        await fetch(RELAY_ENDPOINT, {
+        await fetch(SHEET_WEB_APP_URL, {
           method: 'POST',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(statePayload)
+          body: JSON.stringify({ action: 'addOrder', order: order })
         });
       } catch(e) {}
-      isCloudUpdating = false;
     }
 
-    async function fetchCloudData() {
+    async function fetchOrdersFromSheet() {
       try {
-        const res = await fetch(RELAY_ENDPOINT);
-        if (res.ok) {
-          const payload = await res.json();
-          if (payload && payload.timestamp) {
-            if (payload.activeOrders) { localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(payload.activeOrders)); renderIncomingQueue(); }
-            if (payload.kdsOrders) { localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(payload.kdsOrders)); renderKDS(); }
-            if (payload.sales) { localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(payload.sales)); renderAnalyticsView(); }
-            if (payload.menu) { menuCatalog = payload.menu; localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); }
+        const res = await fetch(SHEET_WEB_APP_URL);
+        if(res.ok) {
+          const orders = await res.json();
+          if(Array.isArray(orders)) {
+            const active = orders.filter(o => o.status === 'Active');
+            localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
+            localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+            renderIncomingQueue();
+            renderKDS();
           }
         }
       } catch(e) {}
     }
 
-    // Auto-poll cloud relay every 3 seconds
-    setInterval(fetchCloudData, 3000);
+    // Auto-poll Google Sheet every 4 seconds
+    setInterval(fetchOrdersFromSheet, 4000);
 
     // RESTAURANT PROFILE EDITING
     let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
@@ -472,9 +462,9 @@
 
         renderIncomingQueue();
         renderKDS();
-        showToast("Order Placed!", `#${order.id} (${order.table}) by ${order.waiterName}`);
+        showToast("Order Placed & Synced!", `#${order.id} (${order.table})`);
 
-        syncPushToCloud();
+        pushOrderToSheet(order);
       }
     }
 
@@ -549,8 +539,6 @@
       renderKDS();
       renderIncomingQueue();
       renderAnalyticsView();
-
-      syncPushToCloud();
     }
 
     function renderCreditDues() {
@@ -590,7 +578,6 @@
       renderCreditDues();
       renderAnalyticsView();
       showToast("Cleared", "Amount added to sales.");
-      syncPushToCloud();
     }
 
     function renderAnalyticsView() {
@@ -643,7 +630,6 @@
       renderCrudMenuList();
       resetMenuForm();
       showToast("Saved!", "Menu item updated.");
-      syncPushToCloud();
     }
 
     function editMenuItem(id) {
@@ -663,7 +649,6 @@
       renderMenu();
       renderCrudMenuList();
       showToast("Deleted", "Menu item removed.");
-      syncPushToCloud();
     }
 
     function renderCrudMenuList() {
@@ -761,7 +746,7 @@
 
     function updateCartUI() {
       const list = document.getElementById('order-items-list');
-      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>`; }
+      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>'; }
       else {
         list.innerHTML = currentCart.map(c => `<div class="flex justify-between items-center text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
       }
@@ -772,12 +757,11 @@
     updateRestaurantHeaderUI();
     renderMenu();
     renderTableDropdown();
-    renderIncomingQueue();
+    fetchOrdersFromSheet();
     renderKDS();
     renderCreditDues();
     renderAnalyticsView();
     switchTab('pos');
-    fetchCloudData();
   </script>
 </body>
 </html>
