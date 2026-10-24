@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
+  <style>
     @media print {
       body * { visibility: hidden; }
       #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible; }
@@ -251,47 +251,62 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[520px] overflow-y-auto" id="menu-grid"></div>
           </div>
 
+          <!-- EXACT CHECKOUT PANEL MATCHING USER REFERENCE -->
           <div class="col-span-12 lg:col-span-5 bg-white p-3 rounded-2xl border flex flex-col justify-between">
             <div>
-              <div class="mb-3 border-b pb-2">
-                <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Select Order Type (Dine-In / Takeaway / Delivery)</label>
-                <div class="grid grid-cols-3 gap-1.5" id="order-type-buttons-container">
-                  <button onclick="selectOrderType('DINEIN')" id="btn-type-DINEIN" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1 active-order-type">
-                    <i class="fa-solid fa-chair text-xs"></i> Dine-In
-                  </button>
-                  <button onclick="selectOrderType('TAKEAWAY')" id="btn-type-TAKEAWAY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-bag-shopping text-xs"></i> Takeaway
-                  </button>
-                  <button onclick="selectOrderType('DELIVERY')" id="btn-type-DELIVERY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-motorcycle text-xs"></i> Delivery
-                  </button>
+              <div class="mb-3 border-b pb-2 flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider" id="order-type-display-label">Walk-In</span>
+                <div class="grid grid-cols-3 gap-1" id="order-type-buttons-container">
+                  <button onclick="selectOrderType('DINEIN')" id="btn-type-DINEIN" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-[10px] px-2 py-1.5 rounded-lg active-order-type">Dine</button>
+                  <button onclick="selectOrderType('TAKEAWAY')" id="btn-type-TAKEAWAY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-[10px] px-2 py-1.5 rounded-lg">Takeaway</button>
+                  <button onclick="selectOrderType('DELIVERY')" id="btn-type-DELIVERY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-[10px] px-2 py-1.5 rounded-lg">Delivery</button>
                 </div>
               </div>
 
-              <h3 class="text-sm font-bold border-b pb-2 mb-2 flex justify-between">
-                <span>Cart & Live Orders</span>
+              <h3 class="text-sm font-bold border-b pb-2 mb-2 flex justify-between items-center">
+                <span>Cart Items</span>
                 <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
               </h3>
-              <div id="order-items-list" class="space-y-1.5 max-h-36 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
-              <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"></div>
+              
+              <!-- CART ITEMS LIST WITH TRASH & QTY CONTROLS -->
+              <div id="order-items-list" class="space-y-2 max-h-40 overflow-y-auto mb-3 border-b pb-3">
+                <p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>
+              </div>
+
+              <!-- CART SUMMARY BOX -->
+              <div class="bg-slate-100 p-2.5 rounded-xl border mb-3 space-y-1 text-xs font-semibold text-slate-700">
+                <div class="flex justify-between"><span>Total items in cart</span><span id="summary-total-items">0</span></div>
+                <div class="flex justify-between"><span>Sub Total</span><span id="summary-sub-total">0.00</span></div>
+                <div class="flex justify-between text-rose-600"><span>Discount</span><span id="summary-discount-val">0.00</span></div>
+                <div class="flex justify-between font-black text-sm text-slate-900 border-t pt-1"><span>Grand Total</span><span id="summary-grand-total">0.00 PKR</span></div>
+              </div>
+
+              <div id="incoming-orders-queue" class="space-y-2 max-h-24 overflow-y-auto"></div>
             </div>
 
-            <div class="border-t pt-2 space-y-2 mt-2">
+            <div class="border-t pt-2 space-y-2.5">
               <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="waiter-name-input" placeholder="Cashier / Waiter Name" value="Counter Cashier" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
-                <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Table Number / Area</label>
+                  <input type="text" id="waiter-name-input" placeholder="Table Number" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none font-semibold">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Discount (amount)</label>
+                  <input type="number" id="discount-input" placeholder="0" value="0" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none font-semibold">
+                </div>
               </div>
-              <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
               
-              <div class="flex justify-between text-base font-black">
-                <span>Total:</span>
-                <span id="bill-total" class="text-emerald-600">Rs. 0</span>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Comments</label>
+                <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
               </div>
-              <div class="grid grid-cols-2 gap-2">
-                <button onclick="checkoutOrder('cash')" class="bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-xs">Push Order</button>
-                <button onclick="printCartDirectReceipt()" class="bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+              
+              <!-- EXACT 3 ACTION BUTTONS: KOT (BLUE), PAYMENT (YELLOW), SAVE (GREEN) -->
+              <div class="grid grid-cols-3 gap-2 pt-1">
+                <button onclick="printIndividualItemWiseKOT()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> KOT</button>
+                <button onclick="checkoutOrder('payment')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-wallet"></i> Payment</button>
+                <button onclick="checkoutOrder('cash')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-check"></i> Save</button>
               </div>
-              <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 text-white py-2 rounded-xl font-bold text-xs">Add to Udhaar Khata</button>
             </div>
           </div>
         </div>
@@ -405,6 +420,7 @@
       document.querySelectorAll('.order-type-btn').forEach(btn => btn.classList.remove('active-order-type'));
       const activeBtn = document.getElementById('btn-type-' + typeName);
       if(activeBtn) activeBtn.classList.add('active-order-type');
+      document.getElementById('order-type-display-label').innerText = typeName;
     }
 
     function playBeep() {
@@ -621,13 +637,22 @@
       document.getElementById('receipt-modal').classList.add('hidden');
     }
 
-    // STRICT INDIVIDUAL ITEM-WISE SEPARATE SLIP PRINTING (Har item ke liye bilkul alag alag slip print hogi)
+    // STRICT INDIVIDUAL ITEM-WISE SEPARATE SLIP PRINTING WITH PAGE BREAK
     function printIndividualItemWiseKOT() {
-      if(!currentActiveOrderForKOT) return;
-      const order = currentActiveOrderForKOT;
+      if(currentCart.length === 0) return alert("Cart is empty!");
       
+      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const total = Math.max(0, subtotal - discount);
+      const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
+      const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
+      const comments = document.getElementById('order-comments-input').value.trim();
+
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       let expandedItems = [];
-      order.items.forEach(item => {
+      currentCart.forEach(item => {
         for(let q = 0; q < Number(item.qty); q++) {
           expandedItems.push({
             name: item.name,
@@ -640,20 +665,17 @@
 
       const kotArea = document.getElementById('kot-print-area');
       kotArea.innerHTML = expandedItems.map((item, index) => `
-        <div class="page-break" style="font-family: monospace; font-size: 13px; margin-bottom: 30px; border: 2px dashed #000; padding: 15px; background: #fff;">
-          <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; background: #000; color: #fff; padding: 4px;">*** ${(item.category).toUpperCase()} COUNTER SLIP (${index + 1} of ${expandedItems.length}) ***</div>
+        <div class="print-slip-box" style="font-family: monospace; font-size: 13px; padding: 15px; background: #fff; width: 300px; margin: 0 auto;">
+          <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; background: #000; color: #fff; padding: 4px;">*** ${(item.category).toUpperCase()} COUNTER (${index + 1} of ${expandedItems.length}) ***</div>
           <br/>
           <div style="font-weight: bold;">Restaurant: ${restaurantProfile.name}</div>
           <div>Branch: ${restaurantProfile.branch}</div>
-          <div>Date: ${order.fullFormattedDate || new Date().toLocaleString()}</div>
+          <div>Date: ${formattedDate}</div>
           <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div style="font-size: 16px; font-weight: bold;">Invoice #: ${order.id}</div>
+          <div style="font-size: 16px; font-weight: bold;">Order Type: ${currentSelectedOrderType}</div>
+          <div style="font-size: 14px; font-weight: bold; color: #4338ca;">Table / Area: ${tableNo} (${serviceArea})</div>
           <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div style="font-size: 14px; font-weight: bold; color: #059669;">Order Type: ${order.table}</div>
-          <div style="font-size: 14px; font-weight: bold; color: #4338ca;">Service Area / Table: ${order.serviceArea || 'First Floor'}</div>
-          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div>Cashier: ${order.waiterName || 'Counter Cashier'}</div>
-          ${order.comments ? `<div style="margin-top: 5px; font-style: italic; font-weight: bold;">Note: ${order.comments}</div>` : ''}
+          ${comments ? `<div style="margin-top: 5px; font-style: italic; font-weight: bold;">Note: ${comments}</div>` : ''}
           <br/>
           <div style="border: 2px solid #000; padding: 10px; text-align: center; background: #f9f9f9;">
             <div style="font-size: 18px; font-weight: black;">${item.name}</div>
@@ -664,43 +686,6 @@
       `).join('');
 
       window.print();
-    }
-
-    function printCartDirectReceipt() {
-      if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
-      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-      const total = Math.max(0, subtotal - discount);
-      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter Cashier';
-      const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
-      const comments = document.getElementById('order-comments-input').value.trim();
-
-      const now = new Date();
-      const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
-
-      const tempOrder = {
-        id: Math.floor(Math.random() * 89999 + 10000),
-        table: currentSelectedOrderType,
-        serviceArea: serviceArea,
-        waiterName: waiter,
-        items: [...currentCart],
-        totalAmount: total,
-        discount: discount,
-        comments: comments,
-        fullFormattedDate: formattedDate,
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: now.toISOString()
-      };
-
-      openReceiptModalForOrder(tempOrder);
-    }
-
-    function printSpecificOrderReceipt(orderId) {
-      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      const ord = activeOrders.find(o => o.id === orderId);
-      if(ord) {
-        openReceiptModalForOrder(ord);
-      }
     }
 
     function renderMenu() {
@@ -744,29 +729,47 @@
       updateCartUI();
     }
 
+    function removeFromCartCompletely(id) {
+      currentCart = currentCart.filter(c => c.id !== id);
+      updateCartUI();
+    }
+
     function updateCartUI() {
       const list = document.getElementById('order-items-list');
+      let totalQtyCount = 0;
+      
       if(currentCart.length === 0) { 
         list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; 
       } else {
-        list.innerHTML = currentCart.map(c => `
-          <div class="flex justify-between items-center text-xs border-b pb-1.5">
-            <div class="truncate max-w-[120px]">
-              <span class="font-bold">${c.name}</span>
-              <div class="text-[10px] text-emerald-600 font-semibold">Rs. ${c.price * c.qty}</div>
+        list.innerHTML = currentCart.map(c => {
+          totalQtyCount += Number(c.qty);
+          return `
+            <div class="flex justify-between items-center text-xs border-b pb-2">
+              <div class="truncate max-w-[130px]">
+                <span class="font-bold block">${c.name}</span>
+                <span class="text-[10px] text-emerald-600 font-bold">Rs. ${c.price}</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button onclick="removeFromCartCompletely(${c.id})" class="text-rose-500 hover:text-rose-700 px-1 py-1 font-bold" title="Delete Item"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border">
+                  <button onclick="changeCartQty(${c.id}, -1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">-</button>
+                  <span class="w-5 text-center font-bold">${c.qty}</span>
+                  <button onclick="changeCartQty(${c.id}, 1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">+</button>
+                </div>
+              </div>
             </div>
-            <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border">
-              <button onclick="changeCartQty(${c.id}, -1)" class="w-6 h-6 bg-white rounded shadow text-slate-700 font-bold">-</button>
-              <span class="w-5 text-center font-bold">${c.qty}</span>
-              <button onclick="changeCartQty(${c.id}, 1)" class="w-6 h-6 bg-white rounded shadow text-slate-700 font-bold">+</button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
+
       const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       const discount = parseFloat(document.getElementById('discount-input').value) || 0;
       const total = Math.max(0, subtotal - discount);
-      document.getElementById('bill-total').innerText = `Rs. ${total}`;
+
+      document.getElementById('summary-total-items').innerText = totalQtyCount;
+      document.getElementById('summary-sub-total').innerText = subtotal.toFixed(2);
+      document.getElementById('summary-discount-val').innerText = discount.toFixed(2);
+      document.getElementById('summary-grand-total').innerText = `${total.toFixed(2)} PKR`;
     }
 
     function deductStockForOrder(items) {
@@ -788,59 +791,45 @@
       const total = Math.max(0, subtotal - discount);
       const comments = document.getElementById('order-comments-input').value.trim();
       const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
+      const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
       
       const now = new Date();
       const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
 
       deductStockForOrder(currentCart);
 
-      if(type === 'credit') {
-        const custName = prompt("Customer Name:") || "Guest";
-        const order = {
-          id: Math.floor(Math.random() * 89999 + 10000),
-          table: currentSelectedOrderType,
-          serviceArea: serviceArea,
-          waiterName: custName,
-          items: [...currentCart],
-          totalAmount: total,
-          discount: discount,
-          comments: comments,
-          status: 'Credit',
-          fullFormattedDate: formattedDate,
-          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timestamp: now.toISOString()
-        };
-        let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-        credit.push({ ...order, customerName: custName });
-        localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
-        pushOrderToSheet(order);
-        showToast("Saved", "Added to Udhaar & Synced");
-        renderCreditDues();
+      const order = {
+        id: Math.floor(Math.random() * 89999 + 10000),
+        table: currentSelectedOrderType,
+        serviceArea: `${serviceArea} - ${tableNo}`,
+        waiterName: 'Counter Cashier',
+        items: [...currentCart],
+        totalAmount: total,
+        discount: discount,
+        comments: comments,
+        status: type === 'payment' ? 'Completed' : 'Active',
+        fullFormattedDate: formattedDate,
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: now.toISOString()
+      };
+
+      if(type === 'payment') {
+        let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+        sales.push({ id: order.id, total: order.totalAmount, table: order.table, serviceArea: order.serviceArea, waiterName: order.waiterName, time: order.time, fullFormattedDate: order.fullFormattedDate, timestamp: order.timestamp, items: order.items });
+        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
+        openReceiptModalForOrder(order);
+        showToast("Payment Success", `Order #${order.id} paid & saved.`);
       } else {
-        const order = {
-          id: Math.floor(Math.random() * 89999 + 10000),
-          table: currentSelectedOrderType,
-          serviceArea: serviceArea,
-          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter Cashier',
-          items: [...currentCart],
-          totalAmount: total,
-          discount: discount,
-          comments: comments,
-          status: 'Active',
-          fullFormattedDate: formattedDate,
-          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timestamp: now.toISOString()
-        };
         let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
         active.push(order);
         localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
         localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
-        pushOrderToSheet(order);
-        openReceiptModalForOrder(order);
-        showToast("Success", `Order Pushed as ${currentSelectedOrderType}!`);
+        showToast("Saved", `Order #${order.id} pushed successfully.`);
       }
+
+      pushOrderToSheet(order);
       currentCart = [];
-      document.getElementById('discount-input').value = '';
+      document.getElementById('discount-input').value = '0';
       document.getElementById('order-comments-input').value = '';
       updateCartUI();
       renderIncomingQueue();
@@ -853,9 +842,8 @@
       document.getElementById('incoming-orders-queue').innerHTML = active.map(o => `
         <div class="bg-amber-50 border p-2 rounded-xl text-xs flex justify-between items-center">
           <div>
-            <div class="font-bold">#${o.id} - <span class="text-emerald-700">[${o.table}]</span> [${o.serviceArea || 'Area'}] (Rs. ${o.totalAmount})</div>
+            <div class="font-bold">#${o.id} - <span class="text-emerald-700">[${o.table}]</span> [${o.serviceArea}] (Rs. ${o.totalAmount})</div>
             <div class="text-[10px] text-slate-500">${o.items.map(i=>i.name).join(', ')}</div>
-            ${o.comments ? `<div class="text-[10px] text-rose-600 font-semibold italic">Note: ${o.comments}</div>` : ''}
           </div>
           <div class="space-x-1">
             <button onclick="printSpecificOrderReceipt(${o.id})" class="bg-slate-900 text-white text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-print"></i></button>
@@ -867,22 +855,14 @@
 
     function cancelOrder(id) {
       if(!confirm(`Are you sure you want to cancel Order #${id}?`)) return;
-      
       let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
       active = active.filter(o => o.id !== id);
       localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
       localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
-
-      let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
-      if(!cancelledIds.includes(Number(id))) {
-        cancelledIds.push(Number(id));
-        localStorage.setItem('pakrms_cancelled_ids', JSON.stringify(cancelledIds));
-      }
-
       markOrderCompleteInSheet(id, 'cancelOrder');
       renderIncomingQueue();
       renderKDS();
-      showToast("Cancelled", `Order #${id} cancelled successfully.`);
+      showToast("Cancelled", `Order #${id} cancelled.`);
     }
 
     function renderKDS() {
@@ -898,12 +878,11 @@
           <div class="flex justify-between font-bold border-b border-slate-700 pb-1 mb-2">
             <span>#${o.id}</span>
             <span class="text-emerald-400 uppercase font-black">[${o.table}]</span>
-            <span class="text-indigo-400">${o.serviceArea || 'Area'}</span>
+            <span class="text-indigo-400">${o.serviceArea}</span>
           </div>
           <div class="text-xs space-y-1 mb-2">
             ${o.items.map(i => `<div>${i.name} (${i.category || 'General'}) x${i.qty}</div>`).join('')}
           </div>
-          ${o.comments ? `<div class="text-[11px] text-amber-400 bg-slate-900 p-1.5 rounded mb-2 italic">Note: ${o.comments}</div>` : ''}
           <div class="grid grid-cols-2 gap-2">
             <button onclick="completeOrder(${o.id})" class="bg-emerald-500 text-slate-950 font-black py-2 rounded-lg text-xs">SERVED</button>
             <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white font-bold py-2 rounded-lg text-xs">CANCEL</button>
@@ -922,15 +901,9 @@
       active = active.filter(o => o.id !== id);
       localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
 
-      let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
-      if(!completedIds.includes(Number(id))) {
-        completedIds.push(Number(id));
-        localStorage.setItem('pakrms_completed_ids', JSON.stringify(completedIds));
-      }
-
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table || 'DINEIN', serviceArea: ord.serviceArea || 'First Floor', waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
+        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table, serviceArea: ord.serviceArea, waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp, items: ord.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -948,7 +921,7 @@
         return;
       }
       tbody.innerHTML = credit.map(c => `
-        <tr class="border-b"><td class="p-2 font-bold">${c.customerName || c.waiterName}</td><td class="p-2 font-bold text-emerald-700">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
+        <tr class="border-b"><td class="p-2 font-bold">${c.customerName}</td><td class="p-2 font-bold text-emerald-700">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
       `).join('');
     }
 
@@ -959,13 +932,13 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, table: item.table || 'DINEIN', serviceArea: item.serviceArea || 'First Floor', waiterName: item.customerName || item.waiterName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
+        sales.push({ id: item.id, total: item.totalAmount, table: item.table, serviceArea: item.serviceArea, waiterName: item.customerName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp, items: item.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
       renderCreditDues();
       renderAnalyticsView();
-      showToast("Cleared", "Udhaar paid & added to sales.");
+      showToast("Cleared", "Udhaar paid.");
     }
 
     function switchView(viewId, subMode = '') {
@@ -1049,7 +1022,7 @@
             <td class="p-2.5 font-bold text-emerald-700">${menuWiseData[name].qty}</td>
             <td class="p-2.5 font-black text-emerald-600">Rs. ${menuWiseData[name].revenue}</td>
           </tr>
-        `).join('') : `<tr><td colspan="4" class="text-center py-4 text-slate-400">No items sold for this order type.</td></tr>`;
+        `).join('') : `<tr><td colspan="4" class="text-center py-4 text-slate-400">No items sold.</td></tr>`;
 
         labels = menuNames;
         dataValues = menuQtys;
@@ -1078,15 +1051,7 @@
         menuTableContainer.classList.add('hidden');
         filteredSales.forEach(s => {
           let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
-          let key = '';
-          if(mode === 'sales' || mode === 'datetime') {
-            key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-          } else if(mode === 'month') {
-            key = dateObj.toLocaleString([], { year: 'numeric', month: 'long' });
-          } else if(mode === 'year') {
-            key = dateObj.getFullYear().toString();
-          }
-          
+          let key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
           if(!aggregatedData[key]) aggregatedData[key] = 0;
           aggregatedData[key] += Number(s.total || 0);
         });
@@ -1117,15 +1082,15 @@
 
       const logsTbody = document.getElementById('detailed-order-history-tbody');
       if(filteredSales.length === 0) {
-        logsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">No orders recorded for this filter.</td></tr>`;
+        logsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">No orders recorded.</td></tr>`;
       } else {
         logsTbody.innerHTML = filteredSales.map(s => `
           <tr class="border-b hover:bg-slate-50">
             <td class="p-2.5 font-semibold text-slate-700">${s.fullFormattedDate || s.time || 'N/A'}</td>
             <td class="p-2.5 font-bold text-slate-900">#${s.id}</td>
             <td class="p-2.5 font-bold text-emerald-700">${s.table || 'DINEIN'}</td>
-            <td class="p-2.5 font-bold text-indigo-600">${s.serviceArea || 'First Floor'}</td>
-            <td class="p-2.5 text-slate-600">${s.waiterName || 'Cashier'}</td>
+            <td class="p-2.5 font-bold text-indigo-600">${s.serviceArea}</td>
+            <td class="p-2.5 text-slate-600">${s.waiterName}</td>
             <td class="p-2.5 font-bold text-emerald-800">${Array.isArray(s.items) ? s.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'N/A'}</td>
             <td class="p-2.5 font-black text-emerald-600">Rs. ${s.total}</td>
           </tr>
@@ -1138,7 +1103,7 @@
     function renderCrudMenuList() {
       document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${m.name} (${m.category}) - Rs. ${m.price} (Stock: ${m.stock})</span>
+          <span>${m.name} (${m.category}) - Rs. ${m.price}</span>
           <button onclick="menuCatalog=menuCatalog.filter(x=>x.id!==${m.id}); localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); renderCrudMenuList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
@@ -1157,24 +1122,18 @@
       document.getElementById('menu-item-category').value = '';
       document.getElementById('menu-item-price').value = '';
       document.getElementById('menu-item-stock').value = '';
-      showToast("Saved", "Menu item & section added.");
+      showToast("Saved", "Menu item added.");
     }
 
     function promptAdminAuth() {
       document.getElementById('admin-pass-input').value = '';
       document.getElementById('admin-auth-modal').classList.remove('hidden');
     }
-    function closeAdminAuthModal() {
-      document.getElementById('admin-auth-modal').classList.add('hidden');
-    }
+    function closeAdminAuthModal() { document.getElementById('admin-auth-modal').classList.add('hidden'); }
     function verifyAdminPassword() {
       const pass = document.getElementById('admin-pass-input').value;
-      if(pass === 'admin123') {
-        closeAdminAuthModal();
-        openStockModal();
-      } else {
-        alert("Incorrect Admin Password! (Default is admin123)");
-      }
+      if(pass === 'admin123') { closeAdminAuthModal(); openStockModal(); }
+      else { alert("Incorrect Admin Password!"); }
     }
 
     function openStockModal() { document.getElementById('stock-crud-modal').classList.remove('hidden'); renderStockList(); }
@@ -1182,8 +1141,8 @@
     function renderStockList() {
       document.getElementById('stock-list-container').innerHTML = stockCatalog.map(s => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <div><b class="text-slate-900">${s.name}</b>: <span class="${s.qty <= 5 ? 'text-rose-600 font-black' : 'text-amber-600 font-bold'}">${s.qty} ${s.unit}</span></div>
-          <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList(); checkStockLevelsAndAlert();" class="text-rose-500 font-bold">Delete</button>
+          <div><b class="text-slate-900">${s.name}</b>: <span class="font-bold text-amber-600">${s.qty} ${s.unit}</span></div>
+          <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
     }
@@ -1192,21 +1151,10 @@
       const qty = parseFloat(document.getElementById('stock-item-qty').value);
       const unit = document.getElementById('stock-item-unit').value.trim() || 'kg';
       if(!name || isNaN(qty)) return alert("Enter stock name & quantity!");
-      
-      const exist = stockCatalog.find(s => s.name.toLowerCase() === name.toLowerCase());
-      if(exist) {
-        exist.qty = qty;
-        exist.unit = unit;
-      } else {
-        stockCatalog.push({ id: Date.now(), name, qty, unit });
-      }
+      stockCatalog.push({ id: Date.now(), name, qty, unit });
       localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
-      document.getElementById('stock-item-name').value = '';
-      document.getElementById('stock-item-qty').value = '';
-      document.getElementById('stock-item-unit').value = '';
       renderStockList();
-      checkStockLevelsAndAlert();
-      showToast("Stock Saved", "Inventory updated successfully.");
+      showToast("Saved", "Stock updated.");
     }
 
     function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
@@ -1239,7 +1187,7 @@
     function exportSystemDataBackup() {
       const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, areas: serviceAreas, stock: stockCatalog, timestamp: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RMS_Backup_${restaurantProfile.branch}.json`; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RMS_Backup.json`; a.click();
       showToast("Backup Downloaded", "JSON file saved.");
     }
 
@@ -1255,11 +1203,9 @@
           if(data.menu) localStorage.setItem('pakrms_menu_catalog', JSON.stringify(data.menu));
           if(data.areas) localStorage.setItem('pakrms_service_areas_db', JSON.stringify(data.areas));
           if(data.stock) localStorage.setItem('pakrms_stock_db', JSON.stringify(data.stock));
-          showToast("Restored", "System restored successfully!");
+          showToast("Restored", "System restored!");
           setTimeout(() => window.location.reload(), 1200);
-        } catch(err) {
-          alert("Invalid backup file!");
-        }
+        } catch(err) { alert("Invalid backup file!"); }
       };
       reader.readAsText(file);
     }
