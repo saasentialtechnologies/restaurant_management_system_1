@@ -365,7 +365,7 @@
 
     function renderMenu() {
       document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
-        <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer" onclick="addToCart(${m.id})">
+        <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer hover:border-emerald-500 transition-colors" onclick="addToCart(${m.id})">
           <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
           <p class="font-bold text-xs">${m.name}</p>
           <p class="text-emerald-600 font-black text-xs">Rs. ${m.price}</p>
@@ -375,8 +375,13 @@
 
     function addToCart(id) {
       const item = menuCatalog.find(m => m.id === id);
+      if(!item) return;
       const exist = currentCart.find(c => c.id === id);
-      if(exist) exist.qty++; else currentCart.push({ ...item, qty: 1 });
+      if(exist) {
+        exist.qty++;
+      } else {
+        currentCart.push({ ...item, qty: 1 });
+      }
       updateCartUI();
     }
 
