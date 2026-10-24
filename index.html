@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Dewan-e-Laziz Sajji and BBQ - Enterprise RMS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,17 +27,8 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- INDIVIDUAL ITEM-WISE SEPARATE KOT / BILL PRINT AREA -->
+  <!-- INDIVIDUAL SLIP PRINT AREA -->
   <div id="kot-print-area" class="hidden"></div>
-
-  <!-- LOW STOCK ALERT BANNER -->
-  <div id="low-stock-banner" class="hidden bg-rose-600 text-white px-4 py-2 text-xs font-bold flex justify-between items-center shadow-lg animate-pulse">
-    <div class="flex items-center gap-2">
-      <i class="fa-solid fa-triangle-exclamation text-base"></i>
-      <span id="low-stock-alert-text">Warning: Some stock items are running low!</span>
-    </div>
-    <button onclick="switchView('analytics')" class="bg-white text-rose-600 px-3 py-1 rounded-lg text-[10px] font-black">Check Inventory</button>
-  </div>
 
   <!-- RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
@@ -48,7 +42,7 @@
           <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Order Type: DINEIN</p>
           <p id="receipt-service-area" class="text-[10px] text-indigo-600 font-bold">Service Area: First Floor</p>
           <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Cashier: Counter Cashier</p>
-          <p id="receipt-time" class="text-[10px] text-slate-400">Date: 10/24/2026, 11:58:52 PM</p>
+          <p id="receipt-time" class="text-[10px] text-slate-400">Date: 10/24/2026</p>
         </div>
         <div id="receipt-items-list" class="space-y-1 border-b pb-2"></div>
         <div class="space-y-1 border-b pb-2 text-[11px]">
@@ -59,24 +53,15 @@
           <span>TOTAL:</span>
           <span id="receipt-total-amount">Rs. 0</span>
         </div>
-        <div id="receipt-comments-box" class="text-[10px] text-slate-600 italic border-b pb-1"></div>
         <div class="text-center text-[10px] text-slate-400 pt-1">
           <p>Thank you for visiting!</p>
           <p class="font-bold">Powered by SaaSential Technologies</p>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 no-print">
-        <button onclick="printIndividualItemWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Individual Slips</button>
+        <button onclick="printIndividualItemWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
         <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
       </div>
-    </div>
-  </div>
-
-  <!-- TOAST NOTIFICATION -->
-  <div id="notification-toast" class="hidden fixed top-3 right-3 z-50 bg-slate-900 text-white p-3 rounded-xl shadow-xl flex items-center space-x-3">
-    <div>
-      <h4 id="toast-title" class="font-bold text-xs text-emerald-400">Notification</h4>
-      <p id="toast-body" class="text-[11px] text-slate-300">Done</p>
     </div>
   </div>
 
@@ -99,37 +84,13 @@
     </div>
   </div>
 
-  <!-- MENU CRUD MODAL -->
-  <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
+  <!-- EDIT MENU MODAL -->
+  <div id="menu-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
-      <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <div>
-        <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item & Section</h3>
-        <div class="space-y-2 mb-4">
-          <input type="text" id="menu-item-name" placeholder="Item Name" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="menu-item-category" placeholder="Kitchen Section (Barbeque, Karahi, Sajji)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-            <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          </div>
-          <input type="number" id="menu-item-stock" placeholder="Initial Stock Qty" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <input type="text" id="menu-item-image" placeholder="Image URL (Optional)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Save Item</button>
-        </div>
-      </div>
-      <div class="overflow-y-auto max-h-48 border-t pt-2 space-y-2" id="crud-menu-list-container"></div>
-    </div>
-  </div>
-
-  <!-- SERVICE AREAS / TABLES CRUD MODAL -->
-  <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
-      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-map-location-dot text-indigo-600 mr-2"></i> Manage Service Areas / Floors</h3>
-      <div class="grid grid-cols-12 gap-2 mb-4">
-        <input type="text" id="new-spot-name" placeholder="Area Name (e.g. Ground Floor, Roof Top)" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
-        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-indigo-600 text-white text-xs font-bold py-2 rounded-xl">Add Area</button>
-      </div>
-      <div class="max-h-60 overflow-y-auto space-y-2" id="tables-list-container"></div>
+      <button onclick="closeMenuEditModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-utensils text-emerald-600 mr-2"></i> Edit Menu Items & Stock</h3>
+      <div class="overflow-y-auto max-h-[60vh] space-y-2 pr-1" id="menu-edit-list-container"></div>
+      <button onclick="closeMenuEditModal(); renderMenu();" class="mt-3 w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Done & Close</button>
     </div>
   </div>
 
@@ -138,38 +99,49 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
       <button onclick="closeAdminAuthModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-2"><i class="fa-solid fa-lock text-rose-600 mr-1"></i> Admin Authorization</h3>
-      <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock & Inventory (Default: admin123)</p>
-      <input type="password" id="admin-pass-input" placeholder="Enter Admin Password" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none mb-3 text-center">
-      <button onclick="verifyAdminPassword()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Verify & Open Stock</button>
+      <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock (Default: admin123)</p>
+      <input type="password" id="admin-pass-input" placeholder="Password" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none mb-3 text-center">
+      <button onclick="verifyAdminPassword()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Verify</button>
     </div>
   </div>
 
-  <!-- STOCK / INVENTORY MODAL (ADMIN ONLY) -->
+  <!-- STOCK / INVENTORY MODAL -->
   <div id="stock-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeStockModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <div>
-        <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Admin Stock & Inventory Management</h3>
+        <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Stock & Inventory Management</h3>
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
-          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Chicken / Mutton)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="stock-item-name" placeholder="Item Name" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
             <input type="number" id="stock-item-qty" placeholder="Quantity" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
-            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           </div>
-          <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock Item</button>
+          <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock</button>
         </div>
       </div>
       <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="stock-list-container"></div>
     </div>
   </div>
 
-  <!-- QR MODAL -->
-  <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
-      <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3" id="qr-table-title">Area QR</h3>
-      <div id="qrcode-container" class="flex justify-center p-4 bg-slate-50 border rounded-2xl mb-4"></div>
-      <button onclick="window.print()" class="w-full bg-slate-900 text-white text-xs font-bold py-3 rounded-xl">Print QR</button>
+  <!-- SERVICE AREAS CRUD MODAL -->
+  <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
+      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-map-location-dot text-indigo-600 mr-2"></i> Manage Service Areas / Floors</h3>
+      <div class="grid grid-cols-12 gap-2 mb-4">
+        <input type="text" id="new-spot-name" placeholder="Area Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
+        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-indigo-600 text-white text-xs font-bold py-2 rounded-xl">Add Area</button>
+      </div>
+      <div class="max-h-60 overflow-y-auto space-y-2" id="tables-list-container"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="notification-toast" class="hidden fixed top-3 right-3 z-50 bg-slate-900 text-white p-3 rounded-xl shadow-xl flex items-center space-x-3">
+    <div>
+      <h4 id="toast-title" class="font-bold text-xs text-emerald-400">Notification</h4>
+      <p id="toast-body" class="text-[11px] text-slate-300">Done</p>
     </div>
   </div>
 
@@ -211,9 +183,10 @@
       </div>
 
       <div class="pt-4 border-t border-slate-800 space-y-2">
-        <button onclick="openMenuCrudModal()" class="w-full bg-emerald-600/20 text-emerald-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
-        <button onclick="promptAdminAuth()" class="w-full bg-amber-600/20 text-amber-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-lock mr-1"></i> Stock (Admin)</button>
-        <button onclick="openTableCrudModal()" class="w-full bg-indigo-600/20 text-indigo-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-map-location-dot mr-1"></i> Service Areas</button>
+        <button onclick="openMenuEditModal()" class="w-full bg-emerald-600 text-white text-xs font-bold py-2.5 rounded-xl text-center shadow"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
+        <button onclick="promptAdminAuth()" class="w-full bg-amber-600 text-slate-950 text-xs font-bold py-2.5 rounded-xl text-center shadow"><i class="fa-solid fa-lock mr-1"></i> Stock (Admin)</button>
+        <button onclick="openTableCrudModal()" class="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl text-center shadow"><i class="fa-solid fa-map-location-dot mr-1"></i> Service Areas</button>
+        <button onclick="openRestaurantEditModal()" class="w-full bg-slate-800 text-slate-300 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-store mr-1"></i> Edit Info</button>
         <div class="grid grid-cols-2 gap-1 pt-1">
           <button onclick="exportSystemDataBackup()" class="bg-slate-900 text-slate-400 text-[10px] font-bold py-1.5 rounded-lg">Backup</button>
           <label class="bg-slate-900 text-rose-400 text-[10px] font-bold py-1.5 rounded-lg text-center cursor-pointer">Restore <input type="file" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
@@ -224,12 +197,7 @@
     <!-- MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col justify-between">
       <header class="bg-white border-b p-3 sm:p-4 flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-2">
-          <h2 id="current-view-title" class="text-sm font-black text-slate-900 uppercase tracking-wide">POS Terminal & New Order</h2>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="openRestaurantEditModal()" class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border hover:bg-slate-200"><i class="fa-solid fa-pen-to-square mr-1"></i> Edit Info</button>
-        </div>
+        <h2 id="current-view-title" class="text-sm font-black text-slate-900 uppercase tracking-wide">POS Terminal & New Order</h2>
       </header>
 
       <main class="p-3 sm:p-5 flex-1">
@@ -245,7 +213,7 @@
                   <option value="Family Hall">Family Hall</option>
                   <option value="Outdoor Lawn">Outdoor Lawn</option>
                 </select>
-                <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
+                <button onclick="openQRCodeModal()" class="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-qrcode"></i> QR</button>
               </div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[520px] overflow-y-auto" id="menu-grid"></div>
@@ -268,12 +236,10 @@
                 <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
               </h3>
               
-              <!-- CART ITEMS LIST -->
               <div id="order-items-list" class="space-y-2 max-h-40 overflow-y-auto mb-3 border-b pb-3">
                 <p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p>
               </div>
 
-              <!-- CART SUMMARY BOX -->
               <div class="bg-slate-100 p-2.5 rounded-xl border mb-3 space-y-1 text-xs font-semibold text-slate-700">
                 <div class="flex justify-between"><span>Total items in cart</span><span id="summary-total-items">0</span></div>
                 <div class="flex justify-between"><span>Sub Total</span><span id="summary-sub-total">0.00</span></div>
@@ -301,7 +267,6 @@
                 <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
               </div>
               
-              <!-- EXACT 3 ACTION BUTTONS: KOT (BLUE), PAYMENT (YELLOW), SAVE (GREEN) -->
               <div class="grid grid-cols-3 gap-2 pt-1">
                 <button onclick="printIndividualItemWiseKOT()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> KOT</button>
                 <button onclick="checkoutOrder('payment')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-wallet"></i> Payment</button>
@@ -341,7 +306,6 @@
                 <option value="menu">Item Wise Sales Summary</option>
                 <option value="sales">Sales Overview</option>
                 <option value="profit">Profit & Loss</option>
-                <option value="datetime">Datetime Wise</option>
               </select>
             </div>
           </div>
@@ -364,9 +328,7 @@
           <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
 
           <div id="menu-sales-table-container" class="overflow-x-auto mt-4">
-            <h3 class="text-sm font-bold mb-2 text-emerald-700 flex items-center justify-between">
-              <span><i class="fa-solid fa-list-check mr-1"></i> Item Wise Sales Breakdown</span>
-            </h3>
+            <h3 class="text-sm font-bold mb-2 text-emerald-700">Item Wise Sales Breakdown</h3>
             <table class="w-full text-left text-xs border rounded-xl">
               <thead>
                 <tr class="bg-slate-100 border-b">
@@ -380,9 +342,8 @@
             </table>
           </div>
 
-          <!-- DETAILED ORDER LOGS -->
           <div class="overflow-x-auto mt-6 border-t pt-4">
-            <h3 class="text-sm font-bold mb-2 text-slate-900"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Detailed Order History</h3>
+            <h3 class="text-sm font-bold mb-2 text-slate-900">Detailed Order History</h3>
             <table class="w-full text-left text-xs border rounded-xl">
               <thead>
                 <tr class="bg-slate-100 border-b">
@@ -390,8 +351,7 @@
                   <th class="p-2.5">Invoice #</th>
                   <th class="p-2.5">Order Type</th>
                   <th class="p-2.5">Service Area</th>
-                  <th class="p-2.5">Cashier</th>
-                  <th class="p-2.5">Items Purchased & Qty</th>
+                  <th class="p-2.5">Items Purchased</th>
                   <th class="p-2.5">Total Amount</th>
                 </tr>
               </thead>
@@ -406,14 +366,65 @@
   <script>
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
 
-    setInterval(() => {
-      window.location.reload();
-    }, 300000);
+    const defaultMenuCatalog = [
+      { id: 1, name: 'Chicken Tikka (1 Piece)', category: 'Barbeque', price: 350, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'Chicken Tikka (Half)', category: 'Barbeque', price: 700, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Chicken Tikka (Full)', category: 'Barbeque', price: 1400, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
+      { id: 4, name: 'Malai Boti (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop&q=80' },
+      { id: 5, name: 'Malai Boti (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&auto=format&fit=crop&q=80' },
+      { id: 6, name: 'Hari Bhari Boti (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 7, name: 'Hari Bhari Boti (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 8, name: 'Shish Taouck (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 9, name: 'Shish Taouck (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 10, name: 'Chicken Karahi', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 11, name: 'Mutton Karahi', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
+      { id: 12, name: 'Desi Murgh Karahi', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 13, name: 'Mutton Qeema', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
+      { id: 14, name: 'Beef Kabab Masalha', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 15, name: 'Mutton Chanp Roast', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
+      { id: 16, name: 'Chicken White Karahi', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 17, name: 'Kabab Masalha', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
+      { id: 18, name: 'Tuwapis', category: 'Karahi', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80' },
+      { id: 19, name: 'Chicken Juicy Sajji (Full)', category: 'Sajji', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 20, name: 'Fish', category: 'Sajji', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=500&auto=format&fit=crop&q=80' },
+      { id: 21, name: 'Half Sajji', category: 'Sajji', price: 1300, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 22, name: 'Quarter Leg Sajji', category: 'Sajji', price: 650, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 23, name: 'Quarter Chest Sajji', category: 'Sajji', price: 750, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 24, name: 'Raita', category: 'Roti & Naan', price: 50, stock: 100, image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500&auto=format&fit=crop&q=80' },
+      { id: 25, name: 'Salad', category: 'Roti & Naan', price: 100, stock: 100, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=80' },
+      { id: 26, name: 'Sada Naan', category: 'Roti & Naan', price: 30, stock: 100, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
+      { id: 27, name: 'Roghani Naan', category: 'Roti & Naan', price: 70, stock: 100, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
+      { id: 28, name: 'Pani Chhoti Bottle', category: 'Beverages', price: 60, stock: 100, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
+      { id: 29, name: 'Pani Badi Bottle', category: 'Beverages', price: 120, stock: 100, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
+      { id: 30, name: 'Next Cola 1.5ltr', category: 'Beverages', price: 200, stock: 100, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 31, name: 'Next Cola 1ltr', category: 'Beverages', price: 150, stock: 100, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 32, name: 'Coke 1.5ltr', category: 'Beverages', price: 220, stock: 100, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 33, name: 'Coke 1ltr', category: 'Beverages', price: 170, stock: 100, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 34, name: 'Regular Cold Drink', category: 'Beverages', price: 80, stock: 100, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' }
+    ];
 
-    let audioCtx = null;
-    let beepInterval = null;
-    let currentActiveOrderForKOT = null;
+    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || defaultMenuCatalog;
+    let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
+      name: "DEWAN-E-LAZIZ SAJJI AND BBQ",
+      branch: "Liaquat Chowk Sabzazar Lahore"
+    };
+    let serviceAreas = JSON.parse(localStorage.getItem('pakrms_service_areas_db')) || [
+      { id: 1, name: 'First Floor' }, { id: 2, name: 'Ground Floor' }, { id: 3, name: 'Family Hall' }, { id: 4, name: 'Outdoor Lawn' }
+    ];
+    let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
+      { id: 1, name: 'Chicken Stock', qty: 50, unit: 'kg' }, { id: 2, name: 'Mutton Stock', qty: 30, unit: 'kg' }
+    ];
+
+    let currentCart = [];
     let currentSelectedOrderType = 'DINEIN';
+    let salesChartInstance = null;
+
+    function showToast(title, body) {
+      document.getElementById('toast-title').innerText = title;
+      document.getElementById('toast-body').innerText = body;
+      const t = document.getElementById('notification-toast');
+      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000);
+    }
 
     function selectOrderType(typeName) {
       currentSelectedOrderType = typeName;
@@ -423,42 +434,78 @@
       document.getElementById('order-type-display-label').innerText = typeName;
     }
 
-    function playBeep() {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let osc = audioCtx.createOscillator();
-        let gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-      } catch(e) {}
+    function renderMenu() {
+      document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
+        <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer hover:border-emerald-500 transition-colors" onclick="addToCart(${m.id})">
+          <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
+          <p class="font-bold text-xs">${m.name}</p>
+          <span class="text-[10px] text-slate-500 font-bold">${m.category}</span>
+          <div class="flex justify-between items-center mt-1">
+            <span class="text-emerald-600 font-black text-xs">Rs. ${m.price}</span>
+            <span class="text-[10px] text-slate-500 font-bold">Left: ${m.stock ?? 100}</span>
+          </div>
+        </div>
+      `).join('');
     }
 
-    function checkStockLevelsAndAlert() {
-      let stock = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [];
-      let menu = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [];
-      let lowStockItems = [...stock.filter(s => s.qty <= 5), ...menu.filter(m => m.stock !== undefined && m.stock <= 5)];
-      let banner = document.getElementById('low-stock-banner');
-      
-      if(lowStockItems.length > 0) {
-        let names = lowStockItems.map(i => `${i.name} (${i.qty !== undefined ? i.qty + ' ' + (i.unit || '') : i.stock + ' left'})`).join(', ');
-        document.getElementById('low-stock-alert-text').innerText = `CRITICAL ALERT: ${names} running low!`;
-        banner.classList.remove('hidden');
-        
-        if(!beepInterval) {
-          beepInterval = setInterval(playBeep, 1500);
-        }
-      } else {
-        banner.classList.add('hidden');
-        if(beepInterval) {
-          clearInterval(beepInterval);
-          beepInterval = null;
-        }
+    function addToCart(id) {
+      const item = menuCatalog.find(m => m.id === id);
+      if(!item) return;
+      const exist = currentCart.find(c => c.id === id);
+      if(exist) { exist.qty++; } else { currentCart.push({ ...item, qty: 1 }); }
+      updateCartUI();
+    }
+
+    function changeCartQty(id, delta) {
+      const exist = currentCart.find(c => c.id === id);
+      if(exist) {
+        exist.qty += delta;
+        if(exist.qty <= 0) { currentCart = currentCart.filter(c => c.id !== id); }
       }
+      updateCartUI();
+    }
+
+    function removeFromCartCompletely(id) {
+      currentCart = currentCart.filter(c => c.id !== id);
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      const list = document.getElementById('order-items-list');
+      let totalQtyCount = 0;
+      
+      if(currentCart.length === 0) { 
+        list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; 
+      } else {
+        list.innerHTML = currentCart.map(c => {
+          totalQtyCount += Number(c.qty);
+          return `
+            <div class="flex justify-between items-center text-xs border-b pb-2">
+              <div class="truncate max-w-[130px]">
+                <span class="font-bold block">${c.name}</span>
+                <span class="text-[10px] text-emerald-600 font-bold">Rs. ${c.price}</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button onclick="removeFromCartCompletely(${c.id})" class="text-rose-500 hover:text-rose-700 px-1 py-1 font-bold"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border">
+                  <button onclick="changeCartQty(${c.id}, -1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">-</button>
+                  <span class="w-5 text-center font-bold">${c.qty}</span>
+                  <button onclick="changeCartQty(${c.id}, 1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">+</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const total = Math.max(0, subtotal - discount);
+
+      document.getElementById('summary-total-items').innerText = totalQtyCount;
+      document.getElementById('summary-sub-total').innerText = subtotal.toFixed(2);
+      document.getElementById('summary-discount-val').innerText = discount.toFixed(2);
+      document.getElementById('summary-grand-total').innerText = `${total.toFixed(2)} PKR`;
     }
 
     async function pushOrderToSheet(order) {
@@ -532,153 +579,12 @@
 
     setInterval(fetchOrdersFromSheet, 4000);
 
-    let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
-      name: "DEWAN-E-LAZIZ SAJJI AND BBQ",
-      branch: "Liaquat Chowk Sabzazar Lahore"
-    };
-
-    function updateRestaurantHeaderUI() {
-      document.getElementById('display-header-restaurant-name').innerText = restaurantProfile.name;
-      document.getElementById('display-header-branch-name').innerText = restaurantProfile.branch;
-      document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
-      document.getElementById('receipt-branch-name').innerText = restaurantProfile.branch;
-    }
-
-    function openRestaurantEditModal() {
-      document.getElementById('edit-rest-name').value = restaurantProfile.name;
-      document.getElementById('edit-branch-name').value = restaurantProfile.branch;
-      document.getElementById('restaurant-edit-modal').classList.remove('hidden');
-    }
-
-    function closeRestaurantEditModal() {
-      document.getElementById('restaurant-edit-modal').classList.add('hidden');
-    }
-
-    function saveRestaurantDetails() {
-      const newName = document.getElementById('edit-rest-name').value.trim();
-      const newBranch = document.getElementById('edit-branch-name').value.trim();
-      if(!newName) return alert("Please enter a valid restaurant name!");
-
-      restaurantProfile.name = newName;
-      restaurantProfile.branch = newBranch || "Liaquat Chowk Sabzazar Lahore";
-      localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
-
-      updateRestaurantHeaderUI();
-      closeRestaurantEditModal();
-      showToast("Updated!", "Restaurant profile saved.");
-    }
-
-    let currentCart = [];
-    let salesChartInstance = null;
-
-    // UPDATED MENU CATALOG AS PER MENU IMAGE (DEWAN-E-LAZIZ SAJJI AND BBQ)[cite: 11]
-    let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      // BARBEQUE
-      { id: 1, name: 'Chicken Tikka', category: 'Barbeque', price: 350, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'Malai Boti', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
-      { id: 3, name: 'Hri Bhari Boti', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
-      { id: 4, name: 'Shish Tawook', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop&q=80' },
-      { id: 5, name: 'Special Nibelet', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&auto=format&fit=crop&q=80' },
-      { id: 6, name: 'Chicken Kabab', category: 'Barbeque', price: 175, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 7, name: 'Beef Kabab', category: 'Barbeque', price: 250, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 8, name: 'Reshmi Kabab', category: 'Barbeque', price: 200, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 9, name: 'Cheese Kabab', category: 'Barbeque', price: 250, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 10, name: 'Leg Piece BBQ', category: 'Barbeque', price: 400, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
-      { id: 11, name: 'Chest Piece BBQ', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
-
-      // KARAHI
-      { id: 12, name: 'Chicken Karahi', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 13, name: 'Mutton Karahi', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
-      { id: 14, name: 'Desi Murgh Karahi', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 15, name: 'Mutton Qeema', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
-      { id: 16, name: 'Beef Kabab Masalha', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 17, name: 'Mutton Chanp Roast', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
-      { id: 18, name: 'Chicken White Karahi', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 19, name: 'Kabab Masalha', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
-      { id: 20, name: 'Tuwapis', category: 'Karahi', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80' },
-
-      // SAJJI
-      { id: 21, name: 'Chicken Juicy Sajji (Full)', category: 'Sajji', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-      { id: 22, name: 'Fish', category: 'Sajji', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=500&auto=format&fit=crop&q=80' },
-      { id: 23, name: 'Half Sajji', category: 'Sajji', price: 1300, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-      { id: 24, name: 'Quarter Leg Sajji', category: 'Sajji', price: 650, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-      { id: 25, name: 'Quarter Chest Sajji', category: 'Sajji', price: 750, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-
-      // EXTRAS / ROTI / BEVERAGES
-      { id: 26, name: 'Raita', category: 'Roti & Naan', price: 50, stock: 200, image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500&auto=format&fit=crop&q=80' },
-      { id: 27, name: 'Salad', category: 'Roti & Naan', price: 100, stock: 200, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=80' },
-      { id: 28, name: 'Sada Naan', category: 'Roti & Naan', price: 30, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
-      { id: 29, name: 'Roghani Naan', category: 'Roti & Naan', price: 70, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
-      { id: 30, name: 'Pani Chhoti Bottle', category: 'Beverages', price: 60, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
-      { id: 31, name: 'Pani Badi Bottle', category: 'Beverages', price: 120, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
-      { id: 32, name: 'Next Cola 1.5ltr', category: 'Beverages', price: 200, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
-      { id: 33, name: 'Next Cola 1ltr', category: 'Beverages', price: 150, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
-      { id: 34, name: 'Coke 1.5ltr', category: 'Beverages', price: 220, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
-      { id: 35, name: 'Coke 1ltr', category: 'Beverages', price: 170, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
-      { id: 36, name: 'Regular Cold Drink', category: 'Beverages', price: 80, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' }
-    ];
-
-    let serviceAreas = JSON.parse(localStorage.getItem('pakrms_service_areas_db')) || [
-      { id: 1, name: 'First Floor' },
-      { id: 2, name: 'Ground Floor' },
-      { id: 3, name: 'Family Hall' },
-      { id: 4, name: 'Outdoor Lawn' }
-    ];
-
-    let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
-      { id: 1, name: 'Chicken Stock', qty: 50, unit: 'kg' },
-      { id: 2, name: 'Mutton Stock', qty: 30, unit: 'kg' }
-    ];
-
-    function showToast(title, body) {
-      document.getElementById('toast-title').innerText = title;
-      document.getElementById('toast-body').innerText = body;
-      const t = document.getElementById('notification-toast');
-      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000);
-    }
-
-    function openReceiptModalForOrder(order) {
-      currentActiveOrderForKOT = order;
-      document.getElementById('receipt-order-id').innerText = `Invoice #: ${order.id}`;
-      document.getElementById('receipt-table-no').innerText = `Order Type: ${order.table}`;
-      document.getElementById('receipt-service-area').innerText = `Service Area: ${order.serviceArea || 'First Floor'}`;
-      document.getElementById('receipt-waiter-name').innerText = `Cashier: ${order.waiterName || 'Counter Cashier'}`;
-      document.getElementById('receipt-time').innerText = `Date: ${order.fullFormattedDate || new Date().toLocaleString()}`;
-      
-      const subtotal = order.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
-      const discount = Number(order.discount || 0);
-      const finalTotal = subtotal - discount;
-
-      document.getElementById('receipt-subtotal').innerText = `Rs. ${subtotal}`;
-      document.getElementById('receipt-discount').innerText = `Rs. ${discount}`;
-      document.getElementById('receipt-total-amount').innerText = `Rs. ${finalTotal}`;
-
-      const itemsContainer = document.getElementById('receipt-items-list');
-      itemsContainer.innerHTML = order.items.map(i => `
-        <div class="flex justify-between">
-          <span>${i.name} (${i.category || 'General'}) x${i.qty}</span>
-          <span>Rs. ${i.price * i.qty}</span>
-        </div>
-      `).join('');
-
-      document.getElementById('receipt-modal').classList.remove('hidden');
-    }
-
-    function closeReceiptModal() {
-      document.getElementById('receipt-modal').classList.add('hidden');
-    }
-
-    // STRICT INDIVIDUAL ITEM-WISE SEPARATE SLIP PRINTING WITH PAGE BREAK
     function printIndividualItemWiseKOT() {
       if(currentCart.length === 0) return alert("Cart is empty!");
       
-      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-      const total = Math.max(0, subtotal - discount);
       const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
       const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
       const comments = document.getElementById('order-comments-input').value.trim();
-
       const now = new Date();
       const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -712,107 +618,11 @@
             <div style="font-size: 18px; font-weight: black;">${item.name}</div>
             <div style="font-size: 16px; font-weight: bold; margin-top: 5px; color: #dc2626;">QUANTITY: 1</div>
           </div>
-          <div style="text-align: center; margin-top: 15px; font-size: 10px; font-weight: bold;">--- Send to ${(item.category).toUpperCase()} Counter ---</div>
+          <div style="text-align: center; margin-top: 15px; font-size: 10px; font-weight: bold;">--- Send to Counter ---</div>
         </div>
       `).join('');
 
       window.print();
-    }
-
-    function renderMenu() {
-      document.getElementById('menu-grid').innerHTML = menuCatalog.map(m => `
-        <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer hover:border-emerald-500 transition-colors" onclick="addToCart(${m.id})">
-          <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
-          <p class="font-bold text-xs">${m.name}</p>
-          <span class="text-[10px] text-slate-500 font-bold">${m.category || 'General'}</span>
-          <div class="flex justify-between items-center mt-1">
-            <span class="text-emerald-600 font-black text-xs">Rs. ${m.price}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${m.stock <= 5 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-slate-200 text-slate-700'}">Left: ${m.stock !== undefined ? m.stock : 'N/A'}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function addToCart(id) {
-      const item = menuCatalog.find(m => m.id === id);
-      if(!item) return;
-      if(item.stock !== undefined && item.stock <= 0) {
-        alert(`${item.name} is out of stock!`);
-        return;
-      }
-      const exist = currentCart.find(c => c.id === id);
-      if(exist) {
-        exist.qty++;
-      } else {
-        currentCart.push({ ...item, qty: 1 });
-      }
-      updateCartUI();
-    }
-
-    function changeCartQty(id, delta) {
-      const exist = currentCart.find(c => c.id === id);
-      if(exist) {
-        exist.qty += delta;
-        if(exist.qty <= 0) {
-          currentCart = currentCart.filter(c => c.id !== id);
-        }
-      }
-      updateCartUI();
-    }
-
-    function removeFromCartCompletely(id) {
-      currentCart = currentCart.filter(c => c.id !== id);
-      updateCartUI();
-    }
-
-    function updateCartUI() {
-      const list = document.getElementById('order-items-list');
-      let totalQtyCount = 0;
-      
-      if(currentCart.length === 0) { 
-        list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; 
-      } else {
-        list.innerHTML = currentCart.map(c => {
-          totalQtyCount += Number(c.qty);
-          return `
-            <div class="flex justify-between items-center text-xs border-b pb-2">
-              <div class="truncate max-w-[130px]">
-                <span class="font-bold block">${c.name}</span>
-                <span class="text-[10px] text-emerald-600 font-bold">Rs. ${c.price}</span>
-              </div>
-              <div class="flex items-center space-x-1">
-                <button onclick="removeFromCartCompletely(${c.id})" class="text-rose-500 hover:text-rose-700 px-1 py-1 font-bold" title="Delete Item"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border">
-                  <button onclick="changeCartQty(${c.id}, -1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">-</button>
-                  <span class="w-5 text-center font-bold">${c.qty}</span>
-                  <button onclick="changeCartQty(${c.id}, 1)" class="w-5 h-5 bg-white rounded shadow text-slate-700 font-bold flex items-center justify-center">+</button>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-      const total = Math.max(0, subtotal - discount);
-
-      document.getElementById('summary-total-items').innerText = totalQtyCount;
-      document.getElementById('summary-sub-total').innerText = subtotal.toFixed(2);
-      document.getElementById('summary-discount-val').innerText = discount.toFixed(2);
-      document.getElementById('summary-grand-total').innerText = `${total.toFixed(2)} PKR`;
-    }
-
-    function deductStockForOrder(items) {
-      items.forEach(i => {
-        let menuItm = menuCatalog.find(m => m.id === i.id);
-        if(menuItm && menuItm.stock !== undefined) {
-          menuItm.stock = Math.max(0, menuItm.stock - i.qty);
-        }
-      });
-      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-      renderMenu();
-      checkStockLevelsAndAlert();
     }
 
     function checkoutOrder(type) {
@@ -825,9 +635,17 @@
       const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
       
       const now = new Date();
-      const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
+      const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      deductStockForOrder(currentCart);
+      // Deduct stock
+      currentCart.forEach(cartItem => {
+        const found = menuCatalog.find(m => m.id === cartItem.id);
+        if(found) {
+          found.stock = Math.max(0, (found.stock ?? 100) - cartItem.qty);
+        }
+      });
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
 
       const order = {
         id: Math.floor(Math.random() * 89999 + 10000),
@@ -848,7 +666,6 @@
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
         sales.push({ id: order.id, total: order.totalAmount, table: order.table, serviceArea: order.serviceArea, waiterName: order.waiterName, time: order.time, fullFormattedDate: order.fullFormattedDate, timestamp: order.timestamp, items: order.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
-        openReceiptModalForOrder(order);
         showToast("Payment Success", `Order #${order.id} paid & saved.`);
       } else {
         let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
@@ -860,12 +677,10 @@
 
       pushOrderToSheet(order);
 
-      // RESET CART & INPUT FIELDS COMPLETELY
       currentCart = [];
       document.getElementById('discount-input').value = '0';
       document.getElementById('order-comments-input').value = '';
       document.getElementById('waiter-name-input').value = '';
-      
       updateCartUI();
       renderIncomingQueue();
       renderKDS();
@@ -873,6 +688,9 @@
 
     function renderIncomingQueue() {
       let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
+      active = active.filter(o => !cancelledIds.includes(Number(o.id)));
+
       document.getElementById('incoming-count-badge').innerText = `${active.length} Active`;
       document.getElementById('incoming-orders-queue').innerHTML = active.map(o => `
         <div class="bg-amber-50 border p-2 rounded-xl text-xs flex justify-between items-center">
@@ -880,28 +698,36 @@
             <div class="font-bold">#${o.id} - <span class="text-emerald-700">[${o.table}]</span> [${o.serviceArea}] (Rs. ${o.totalAmount})</div>
             <div class="text-[10px] text-slate-500">${o.items.map(i=>i.name).join(', ')}</div>
           </div>
-          <div class="space-x-1">
-            <button onclick="printSpecificOrderReceipt(${o.id})" class="bg-slate-900 text-white text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-print"></i></button>
-            <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white text-[10px] px-2 py-1 rounded font-bold">Cancel</button>
-          </div>
+          <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white text-[10px] px-2 py-1 rounded font-bold">Cancel</button>
         </div>
       `).join('');
     }
 
     function cancelOrder(id) {
-      if(!confirm(`Are you sure you want to cancel Order #${id}?`)) return;
+      if(!confirm(`Cancel Order #${id}?`)) return;
+      
+      let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
+      if(!cancelledIds.includes(Number(id))) {
+        cancelledIds.push(Number(id));
+        localStorage.setItem('pakrms_cancelled_ids', JSON.stringify(cancelledIds));
+      }
+
       let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      active = active.filter(o => o.id !== id);
+      active = active.filter(o => Number(o.id) !== Number(id));
       localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
       localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+
       markOrderCompleteInSheet(id, 'cancelOrder');
       renderIncomingQueue();
       renderKDS();
-      showToast("Cancelled", `Order #${id} cancelled.`);
+      showToast("Cancelled", `Order #${id} has been cancelled.`);
     }
 
     function renderKDS() {
       let kds = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
+      let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
+      kds = kds.filter(o => !cancelledIds.includes(Number(o.id)));
+
       document.getElementById('kds-badge').innerText = kds.length;
       const container = document.getElementById('kds-orders-container');
       if(kds.length === 0) {
@@ -913,15 +739,11 @@
           <div class="flex justify-between font-bold border-b border-slate-700 pb-1 mb-2">
             <span>#${o.id}</span>
             <span class="text-emerald-400 uppercase font-black">[${o.table}]</span>
-            <span class="text-indigo-400">${o.serviceArea}</span>
           </div>
           <div class="text-xs space-y-1 mb-2">
-            ${o.items.map(i => `<div>${i.name} (${i.category || 'General'}) x${i.qty}</div>`).join('')}
+            ${o.items.map(i => `<div>${i.name} x${i.qty}</div>`).join('')}
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <button onclick="completeOrder(${o.id})" class="bg-emerald-500 text-slate-950 font-black py-2 rounded-lg text-xs">SERVED</button>
-            <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white font-bold py-2 rounded-lg text-xs">CANCEL</button>
-          </div>
+          <button onclick="completeOrder(${o.id})" class="w-full bg-emerald-500 text-slate-950 font-black py-2 rounded-lg text-xs">SERVED</button>
         </div>
       `).join('');
     }
@@ -944,36 +766,6 @@
       }
       renderKDS();
       renderIncomingQueue();
-      renderAnalyticsView();
-      showToast("Completed", `Order #${id} served.`);
-    }
-
-    function renderCreditDues() {
-      let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-      const tbody = document.getElementById('credit-dues-tbody');
-      if(credit.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">No dues.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = credit.map(c => `
-        <tr class="border-b"><td class="p-2 font-bold">${c.customerName}</td><td class="p-2 font-bold text-emerald-700">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
-      `).join('');
-    }
-
-    function clearCredit(id) {
-      let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
-      const item = credit.find(c => c.id === id);
-      credit = credit.filter(c => c.id !== id);
-      localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
-      if(item) {
-        let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, table: item.table, serviceArea: item.serviceArea, waiterName: item.customerName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp, items: item.items });
-        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
-        markOrderCompleteInSheet(id, 'completeOrder');
-      }
-      renderCreditDues();
-      renderAnalyticsView();
-      showToast("Cleared", "Udhaar paid.");
     }
 
     function switchView(viewId, subMode = '') {
@@ -985,17 +777,14 @@
         if(subMode === 'sales') {
           document.getElementById('analytics-filter-mode').value = 'sales';
           document.getElementById('current-view-title').innerText = "Sales Report & Overview";
-          document.getElementById('report-heading-title').innerText = "Sales Report & Overview";
           document.getElementById('nav-btn-analytics').classList.add('active-nav-btn');
         } else if(subMode === 'profit') {
           document.getElementById('analytics-filter-mode').value = 'profit';
           document.getElementById('current-view-title').innerText = "Profit & Loss Analysis";
-          document.getElementById('report-heading-title').innerText = "Profit & Loss Statement";
           document.getElementById('nav-btn-profit').classList.add('active-nav-btn');
         } else if(subMode === 'menu') {
           document.getElementById('analytics-filter-mode').value = 'menu';
           document.getElementById('current-view-title').innerText = "Item Wise Sales Breakdown";
-          document.getElementById('report-heading-title').innerText = "Item Wise Sales Report";
           document.getElementById('nav-btn-itemwise').classList.add('active-nav-btn');
         }
         renderAnalyticsView();
@@ -1005,12 +794,8 @@
           document.getElementById('nav-btn-' + viewId).classList.add('active-nav-btn');
         }
         if(viewId === 'pos') document.getElementById('current-view-title').innerText = "POS Terminal & New Order";
-        if(viewId === 'kds') document.getElementById('current-view-title').innerText = "Kitchen Display Screen (KDS)";
-        if(viewId === 'credit') {
-          document.getElementById('current-view-title').innerText = "Udhaar Khata (Pending Dues)";
-          renderCreditDues();
-        }
-        if(viewId === 'kds') renderKDS();
+        if(viewId === 'kds') { document.getElementById('current-view-title').innerText = "Kitchen Display Screen (KDS)"; renderKDS(); }
+        if(viewId === 'credit') { document.getElementById('current-view-title').innerText = "Udhaar Khata (Pending Dues)"; renderCreditDues(); }
       }
     }
 
@@ -1074,8 +859,7 @@
         document.getElementById('pl-net-profit').innerText = `Rs. ${Math.round(netProfit)}`;
 
         filteredSales.forEach(s => {
-          let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
-          let key = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          let key = s.fullFormattedDate || 'Today';
           if(!aggregatedData[key]) aggregatedData[key] = 0;
           aggregatedData[key] += Number(s.total || 0) * 0.35;
         });
@@ -1085,8 +869,7 @@
       } else {
         menuTableContainer.classList.add('hidden');
         filteredSales.forEach(s => {
-          let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
-          let key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          let key = s.fullFormattedDate || 'Today';
           if(!aggregatedData[key]) aggregatedData[key] = 0;
           aggregatedData[key] += Number(s.total || 0);
         });
@@ -1103,80 +886,85 @@
         data: {
           labels: labels.length > 0 ? labels : ['No Data Yet'],
           datasets: [{
-            label: mode === 'menu' ? 'Quantity Sold per Item' : mode === 'profit' ? 'Net Profit (PKR)' : 'Sales Revenue (PKR)',
+            label: mode === 'menu' ? 'Quantity Sold' : 'Revenue (PKR)',
             data: dataValues.length > 0 ? dataValues : [0],
-            backgroundColor: mode === 'profit' ? '#059669' : '#10b981',
+            backgroundColor: '#10b981',
             borderColor: '#047857',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true
+            borderWidth: 2
           }]
         },
         options: { responsive: true, maintainAspectRatio: false }
       });
 
       const logsTbody = document.getElementById('detailed-order-history-tbody');
-      if(filteredSales.length === 0) {
-        logsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">No orders recorded.</td></tr>`;
-      } else {
-        logsTbody.innerHTML = filteredSales.map(s => `
-          <tr class="border-b hover:bg-slate-50">
-            <td class="p-2.5 font-semibold text-slate-700">${s.fullFormattedDate || s.time || 'N/A'}</td>
-            <td class="p-2.5 font-bold text-slate-900">#${s.id}</td>
-            <td class="p-2.5 font-bold text-emerald-700">${s.table || 'DINEIN'}</td>
-            <td class="p-2.5 font-bold text-indigo-600">${s.serviceArea}</td>
-            <td class="p-2.5 text-slate-600">${s.waiterName}</td>
-            <td class="p-2.5 font-bold text-emerald-800">${Array.isArray(s.items) ? s.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'N/A'}</td>
-            <td class="p-2.5 font-black text-emerald-600">Rs. ${s.total}</td>
-          </tr>
-        `).join('');
-      }
+      logsTbody.innerHTML = filteredSales.length === 0 ? `<tr><td colspan="6" class="text-center py-4 text-slate-400">No orders recorded.</td></tr>` : filteredSales.map(s => `
+        <tr class="border-b">
+          <td class="p-2.5">${s.fullFormattedDate || s.time}</td>
+          <td class="p-2.5 font-bold">#${s.id}</td>
+          <td class="p-2.5 text-emerald-700 font-bold">${s.table}</td>
+          <td class="p-2.5">${s.serviceArea}</td>
+          <td class="p-2.5">${Array.isArray(s.items) ? s.items.map(i => i.name + ' (x' + i.qty + ')').join(', ') : ''}</td>
+          <td class="p-2.5 font-black text-emerald-600">Rs. ${s.total}</td>
+        </tr>
+      `).join('');
     }
 
-    function openMenuCrudModal() { document.getElementById('menu-crud-modal').classList.remove('hidden'); renderCrudMenuList(); }
-    function closeMenuCrudModal() { document.getElementById('menu-crud-modal').classList.add('hidden'); }
-    function renderCrudMenuList() {
-      document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
-        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${m.name} (${m.category}) - Rs. ${m.price}</span>
-          <button onclick="menuCatalog=menuCatalog.filter(x=>x.id!==${m.id}); localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); renderCrudMenuList();" class="text-rose-500 font-bold">Delete</button>
+    // Modal Helpers
+    function openRestaurantEditModal() {
+      document.getElementById('edit-rest-name').value = restaurantProfile.name;
+      document.getElementById('edit-branch-name').value = restaurantProfile.branch;
+      document.getElementById('restaurant-edit-modal').classList.remove('hidden');
+    }
+    function closeRestaurantEditModal() { document.getElementById('restaurant-edit-modal').classList.add('hidden'); }
+    function saveRestaurantDetails() {
+      restaurantProfile.name = document.getElementById('edit-rest-name').value;
+      restaurantProfile.branch = document.getElementById('edit-branch-name').value;
+      localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
+      document.getElementById('display-header-restaurant-name').innerText = restaurantProfile.name;
+      document.getElementById('display-header-branch-name').innerText = restaurantProfile.branch;
+      closeRestaurantEditModal();
+      showToast("Updated", "Profile saved.");
+    }
+
+    function openMenuEditModal() {
+      document.getElementById('menu-edit-modal').classList.remove('hidden');
+      document.getElementById('menu-edit-list-container').innerHTML = menuCatalog.map(m => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 border rounded-xl text-xs gap-2">
+          <span class="font-bold truncate w-32">${m.name}</span>
+          <input type="number" id="edit-price-${m.id}" value="${m.price}" class="w-20 bg-white border p-1 rounded font-bold" placeholder="Price">
+          <input type="number" id="edit-stock-${m.id}" value="${m.stock ?? 100}" class="w-16 bg-white border p-1 rounded font-bold" placeholder="Stock">
+          <button onclick="updateSingleMenuItem(${m.id})" class="bg-emerald-600 text-white px-3 py-1 rounded font-bold">Save</button>
         </div>
       `).join('');
     }
-    function saveMenuItem() {
-      const name = document.getElementById('menu-item-name').value.trim();
-      const category = document.getElementById('menu-item-category').value.trim() || 'General';
-      const price = parseFloat(document.getElementById('menu-item-price').value);
-      const stock = parseInt(document.getElementById('menu-item-stock').value) || 0;
-      const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
-      if(!name || isNaN(price)) return alert("Enter valid name & price!");
-      menuCatalog.push({ id: Date.now(), name, category, price, stock, image });
-      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-      renderMenu(); renderCrudMenuList();
-      document.getElementById('menu-item-name').value = '';
-      document.getElementById('menu-item-category').value = '';
-      document.getElementById('menu-item-price').value = '';
-      document.getElementById('menu-item-stock').value = '';
-      showToast("Saved", "Menu item added.");
+    function closeMenuEditModal() { document.getElementById('menu-edit-modal').classList.add('hidden'); }
+    function updateSingleMenuItem(id) {
+      const p = parseFloat(document.getElementById(`edit-price-${id}`).value);
+      const s = parseInt(document.getElementById(`edit-stock-${id}`).value);
+      const item = menuCatalog.find(m => m.id === id);
+      if(item) {
+        if(!isNaN(p)) item.price = p;
+        if(!isNaN(s)) item.stock = s;
+        localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+        showToast("Success", "Menu updated.");
+        renderMenu();
+      }
     }
 
-    function promptAdminAuth() {
-      document.getElementById('admin-pass-input').value = '';
-      document.getElementById('admin-auth-modal').classList.remove('hidden');
-    }
+    function promptAdminAuth() { document.getElementById('admin-pass-input').value = ''; document.getElementById('admin-auth-modal').classList.remove('hidden'); }
     function closeAdminAuthModal() { document.getElementById('admin-auth-modal').classList.add('hidden'); }
     function verifyAdminPassword() {
-      const pass = document.getElementById('admin-pass-input').value;
-      if(pass === 'admin123') { closeAdminAuthModal(); openStockModal(); }
-      else { alert("Incorrect Admin Password!"); }
+      if(document.getElementById('admin-pass-input').value === 'admin123') {
+        closeAdminAuthModal();
+        document.getElementById('stock-crud-modal').classList.remove('hidden');
+        renderStockList();
+      } else { alert("Incorrect Password!"); }
     }
-
-    function openStockModal() { document.getElementById('stock-crud-modal').classList.remove('hidden'); renderStockList(); }
     function closeStockModal() { document.getElementById('stock-crud-modal').classList.add('hidden'); }
     function renderStockList() {
       document.getElementById('stock-list-container').innerHTML = stockCatalog.map(s => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <div><b class="text-slate-900">${s.name}</b>: <span class="font-bold text-amber-600">${s.qty} ${s.unit}</span></div>
+          <span><b>${s.name}</b>: ${s.qty} ${s.unit}</span>
           <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
@@ -1185,20 +973,20 @@
       const name = document.getElementById('stock-item-name').value.trim();
       const qty = parseFloat(document.getElementById('stock-item-qty').value);
       const unit = document.getElementById('stock-item-unit').value.trim() || 'kg';
-      if(!name || isNaN(qty)) return alert("Enter stock name & quantity!");
+      if(!name || isNaN(qty)) return;
       stockCatalog.push({ id: Date.now(), name, qty, unit });
       localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
       renderStockList();
       showToast("Saved", "Stock updated.");
     }
 
-    function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
+    function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableList(); }
     function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
-    function renderTableCrudList() {
+    function renderTableList() {
       document.getElementById('tables-list-container').innerHTML = serviceAreas.map(t => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
           <span>${t.name}</span>
-          <button onclick="serviceAreas=serviceAreas.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_service_areas_db', JSON.stringify(serviceAreas)); renderTableCrudList();" class="text-rose-500 font-bold">Delete</button>
+          <button onclick="serviceAreas=serviceAreas.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_service_areas_db', JSON.stringify(serviceAreas)); renderTableList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
     }
@@ -1208,24 +996,16 @@
       serviceAreas.push({ id: Date.now(), name });
       localStorage.setItem('pakrms_service_areas_db', JSON.stringify(serviceAreas));
       document.getElementById('new-spot-name').value = '';
-      renderTableCrudList();
-    }
-    function generateSelectedTableQR() {
-      let fullUrl = `${window.location.origin}/customer.html?area=Store`;
-      document.getElementById('qr-table-title').innerText = `Restaurant QR`;
-      document.getElementById('qrcode-container').innerHTML = '';
-      new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 130, height: 130 });
-      document.getElementById('qr-modal').classList.remove('hidden');
-    }
-    function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
-    
-    function exportSystemDataBackup() {
-      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, areas: serviceAreas, stock: stockCatalog, timestamp: new Date().toISOString() };
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RMS_Backup.json`; a.click();
-      showToast("Backup Downloaded", "JSON file saved.");
+      renderTableList();
     }
 
+    function openQRCodeModal() { alert("Scan QR Code to view digital menu!"); }
+
+    function exportSystemDataBackup() {
+      const data = { profile: restaurantProfile, menu: menuCatalog, areas: serviceAreas, stock: stockCatalog };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'RMS_Backup.json'; a.click();
+    }
     function importSystemDataRestore(e) {
       const file = e.target.files[0];
       if(!file) return;
@@ -1234,23 +1014,17 @@
         try {
           const data = JSON.parse(evt.target.result);
           if(data.profile) localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(data.profile));
-          if(data.sales) localStorage.setItem('pakrms_completed_sales_GULBERG', data.sales);
           if(data.menu) localStorage.setItem('pakrms_menu_catalog', JSON.stringify(data.menu));
           if(data.areas) localStorage.setItem('pakrms_service_areas_db', JSON.stringify(data.areas));
           if(data.stock) localStorage.setItem('pakrms_stock_db', JSON.stringify(data.stock));
-          showToast("Restored", "System restored!");
-          setTimeout(() => window.location.reload(), 1200);
-        } catch(err) { alert("Invalid backup file!"); }
+          alert("Restored successfully!"); window.location.reload();
+        } catch(err) { alert("Invalid file!"); }
       };
       reader.readAsText(file);
     }
 
-    updateRestaurantHeaderUI();
     renderMenu();
     renderIncomingQueue();
-    renderKDS();
-    renderCreditDues();
-    checkStockLevelsAndAlert();
     fetchOrdersFromSheet();
   </script>
 </body>
