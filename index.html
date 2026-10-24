@@ -309,14 +309,28 @@
       if(res.ok) {
         const orders = await res.json();
         if(Array.isArray(orders)) {
-          // Get already completed order IDs locally so they never pop back up
-          let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
-          
-          const active = orders.filter(o => o.status === 'Active' && !completedIds.includes(Number(o.id)));
+          // Active orders filter
+          const active = orders.filter(o => o.status === 'Active');
           localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
           localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+
+          // Completed sales sync across devices
+          const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => ({
+            id: o.id,
+            total: o.totalAmount,
+            waiterName: o.waiterName || 'Counter',
+            time: 'Synced'
+          }));
+          
+          if(completedFromSheet.length > 0) {
+            localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedFromSheet));
+          }
+
           renderIncomingQueue();
           renderKDS();
+          if(!document.getElementById('view-analytics').classList.contains('hidden')) {
+            renderAnalyticsView();
+          }
         }
       }
     } catch(e) {}
@@ -539,20 +553,13 @@
     activeOrders = activeOrders.filter(o => o.id !== id);
     localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
 
-    // Save ID in completed list so auto-poll never brings it back
-    let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
-    if(!completedIds.includes(Number(id))) {
-      completedIds.push(Number(id));
-      localStorage.setItem('pakrms_completed_ids', JSON.stringify(completedIds));
-    }
-
     if(ord) {
       let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-      completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
-      localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+      if(!completedSales.some(s => s.id === ord.id)) {
+        completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
+        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
+      }
       showToast("Served & Cleared", `Order #${id} marked completed.`);
-      
-      // Update Google Sheet status to Completed
       markOrderCompleteInSheet(id);
     }
 
