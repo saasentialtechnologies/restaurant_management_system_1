@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Full Featured Google Sheets Sync</title>
+  <title>Dewan-e-Laziz Restaurant - Enterprise RMS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     @media print {
       body * { visibility: hidden; }
@@ -15,7 +15,7 @@
       #receipt-modal, #kot-print-area { position: absolute; left: 0; top: 0; width: 100%; background: white !important; display: block !important; }
       .no-print { display: none !important; }
     }
-    .active-nav-tab { background-color: #059669 !important; color: #ffffff !important; font-weight: 800 !important; }
+    .active-nav-btn { background-color: #0f172a !important; color: #ffffff !important; border-left: 4px solid #10b981 !important; }
     .active-order-type { background-color: #059669 !important; color: #ffffff !important; border-color: #059669 !important; }
     button, select, input { min-height: 40px; }
   </style>
@@ -31,7 +31,7 @@
       <i class="fa-solid fa-triangle-exclamation text-base"></i>
       <span id="low-stock-alert-text">Warning: Some stock items are running low!</span>
     </div>
-    <button onclick="switchTab('analytics')" class="bg-white text-rose-600 px-3 py-1 rounded-lg text-[10px] font-black">Check Inventory</button>
+    <button onclick="switchView('analytics')" class="bg-white text-rose-600 px-3 py-1 rounded-lg text-[10px] font-black">Check Inventory</button>
   </div>
 
   <!-- RECEIPT MODAL -->
@@ -40,10 +40,11 @@
       <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl no-print">&times;</button>
       <div id="printable-receipt" class="bg-slate-50 border p-4 rounded-xl text-slate-900 font-mono text-xs mb-4 space-y-2">
         <div class="text-center border-b pb-2">
-          <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Dewan-e-Laziz Sajji and BBQ</h3>
-          <p id="receipt-branch-name" class="text-[10px] text-slate-500">Branch: Liauqat Chowk Sabzazar Lahore</p>
+          <h3 id="receipt-brand-name" class="font-black text-sm uppercase">DEWAN-E-LAZIZ RESTAURANT</h3>
+          <p id="receipt-branch-name" class="text-[10px] text-slate-500">DEEWAN LAZEEZ TIKKA HOUSE</p>
           <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Invoice #: 12240</p>
           <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Order Type: DINEIN</p>
+          <p id="receipt-service-area" class="text-[10px] text-indigo-600 font-bold">Service Area: First Floor</p>
           <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Cashier: Waiter First Floor</p>
           <p id="receipt-time" class="text-[10px] text-slate-400">Date: Saturday, October 24th 2026</p>
         </div>
@@ -96,7 +97,7 @@
     </div>
   </div>
 
-  <!-- MENU CRUD MODAL (ADD / UPDATE / DELETE FEATURE RETAINED) -->
+  <!-- MENU CRUD MODAL -->
   <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -117,14 +118,14 @@
     </div>
   </div>
 
-  <!-- TABLE CRUD MODAL -->
+  <!-- SERVICE AREAS / TABLES CRUD MODAL -->
   <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
       <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3">Manage Order Types / Tables</h3>
+      <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-map-location-dot text-indigo-600 mr-2"></i> Manage Service Areas / Floors</h3>
       <div class="grid grid-cols-12 gap-2 mb-4">
-        <input type="text" id="new-spot-name" placeholder="Type Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
-        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">Add</button>
+        <input type="text" id="new-spot-name" placeholder="Area Name (e.g. Ground Floor, Roof Top)" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
+        <button onclick="addNewTableOrSpot()" class="col-span-4 bg-indigo-600 text-white text-xs font-bold py-2 rounded-xl">Add Area</button>
       </div>
       <div class="max-h-60 overflow-y-auto space-y-2" id="tables-list-container"></div>
     </div>
@@ -164,161 +165,226 @@
   <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
       <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3" id="qr-table-title">Table QR</h3>
+      <h3 class="text-base font-bold text-slate-900 mb-3" id="qr-table-title">Area QR</h3>
       <div id="qrcode-container" class="flex justify-center p-4 bg-slate-50 border rounded-2xl mb-4"></div>
       <button onclick="window.print()" class="w-full bg-slate-900 text-white text-xs font-bold py-3 rounded-xl">Print QR</button>
     </div>
   </div>
 
-  <div>
-    <header class="bg-slate-900 text-white p-3 sm:p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-3">
-      <div class="flex items-center space-x-2">
-        <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl font-black text-lg"><i class="fa-solid fa-utensils"></i></div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-base sm:text-lg font-bold tracking-wide" id="display-header-restaurant-name">Dewan-e-Laziz Sajji and BBQ <span class="text-emerald-400">RMS</span></h1>
-            <button onclick="openRestaurantEditModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Edit Restaurant Name"><i class="fa-solid fa-pen-to-square"></i></button>
-          </div>
-          <p class="text-[10px] sm:text-xs text-slate-400" id="display-header-branch-name">Branch: Liauqat Chowk Sabzazar Lahore</p>
+  <!-- MAIN APP LAYOUT WITH SIDEBAR -->
+  <div class="flex flex-col lg:flex-row min-h-screen">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-full lg:w-64 bg-slate-950 text-slate-300 flex flex-col justify-between p-4 shadow-xl shrink-0">
+      <div>
+        <div class="text-center border-b border-slate-800 pb-4 mb-4">
+          <div class="w-12 h-12 bg-emerald-500 text-slate-950 rounded-2xl mx-auto flex items-center justify-center font-black text-xl mb-2"><i class="fa-solid fa-utensils"></i></div>
+          <h1 class="text-sm font-black tracking-wide text-white" id="display-header-restaurant-name">DEWAN-E-LAZIZ RESTAURANT</h1>
+          <p class="text-[10px] text-emerald-400 font-semibold" id="display-header-branch-name">DEEWAN LAZEEZ TIKKA HOUSE</p>
+        </div>
+
+        <div class="space-y-1">
+          <button id="nav-btn-pos" onclick="switchView('pos')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 active-nav-btn">
+            <i class="fa-solid fa-cart-plus text-emerald-400"></i> New Order
+          </button>
+          <button id="nav-btn-kds" onclick="switchView('kds')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 text-slate-400 hover:bg-slate-900">
+            <i class="fa-solid fa-fire text-amber-500"></i> Kitchen KDS <span id="kds-badge" class="ml-auto bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+          </button>
+          <button id="nav-btn-credit" onclick="switchView('credit')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 text-slate-400 hover:bg-slate-900">
+            <i class="fa-solid fa-book-open text-indigo-400"></i> Udhaar Khata
+          </button>
+
+          <div class="pt-3 pb-1 px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">Reports Section</div>
+          
+          <button id="nav-btn-analytics" onclick="switchView('analytics', 'sales')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 text-slate-400 hover:bg-slate-900">
+            <i class="fa-solid fa-chart-line text-emerald-500"></i> Sales Report
+          </button>
+          <button id="nav-btn-profit" onclick="switchView('analytics', 'profit')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 text-slate-400 hover:bg-slate-900">
+            <i class="fa-solid fa-wallet text-amber-400"></i> Profit & Loss
+          </button>
+          <button id="nav-btn-itemwise" onclick="switchView('analytics', 'menu')" class="w-full text-left px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 text-slate-400 hover:bg-slate-900">
+            <i class="fa-solid fa-list-check text-indigo-400"></i> Item Wise Sales
+          </button>
         </div>
       </div>
 
-      <div class="flex items-center space-x-1.5 flex-wrap gap-1">
-        <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Menu</button>
-        <button onclick="promptAdminAuth()" class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-lock mr-1"></i> Stock (Admin)</button>
-        <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
-        <button onclick="exportSystemDataBackup()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-download"></i> Backup</button>
-        <label class="bg-rose-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
-      </div>
-    </header>
-
-    <nav class="bg-white border-b px-2 py-1.5 flex space-x-1.5 overflow-x-auto">
-      <button id="btn-pos" onclick="switchTab('pos')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600 active-nav-tab">POS Terminal</button>
-      <button id="btn-kds" onclick="switchTab('kds')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Kitchen KDS <span id="kds-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span></button>
-      <button id="btn-credit" onclick="switchTab('credit')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Udhaar Khata</button>
-      <button id="btn-analytics" onclick="switchTab('analytics')" class="nav-btn py-2 px-3 rounded-xl font-bold text-xs text-slate-600">Analytics</button>
-    </nav>
-
-    <main class="p-2.5 sm:p-4">
-      <!-- POS VIEW: LEFT MENU, RIGHT CART & CONTROLS -->
-      <div id="view-pos" class="tab-content grid grid-cols-12 gap-3">
-        <!-- LEFT COLUMN: MENU CATALOG -->
-        <div class="col-span-12 lg:col-span-7 bg-white p-3 rounded-2xl border">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-bold">Menu Catalog & Stock Quantities</h2>
-            <div class="flex items-center gap-2">
-              <select id="table-select-dropdown" onchange="syncSelectedOrderTypeFromDropdown()" class="bg-emerald-50 border text-xs font-bold rounded-xl px-2.5 py-2 outline-none"></select>
-              <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[520px] overflow-y-auto" id="menu-grid"></div>
+      <div class="pt-4 border-t border-slate-800 space-y-2">
+        <button onclick="openMenuCrudModal()" class="w-full bg-emerald-600/20 text-emerald-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
+        <button onclick="promptAdminAuth()" class="w-full bg-amber-600/20 text-amber-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-lock mr-1"></i> Stock (Admin)</button>
+        <button onclick="openTableCrudModal()" class="w-full bg-indigo-600/20 text-indigo-400 text-xs font-bold py-2 rounded-xl text-center"><i class="fa-solid fa-map-location-dot mr-1"></i> Service Areas</button>
+        <div class="grid grid-cols-2 gap-1 pt-1">
+          <button onclick="exportSystemDataBackup()" class="bg-slate-900 text-slate-400 text-[10px] font-bold py-1.5 rounded-lg">Backup</button>
+          <label class="bg-slate-900 text-rose-400 text-[10px] font-bold py-1.5 rounded-lg text-center cursor-pointer">Restore <input type="file" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
         </div>
+      </div>
+    </aside>
 
-        <!-- RIGHT COLUMN: CART & ORDER CONTROLS -->
-        <div class="col-span-12 lg:col-span-5 bg-white p-3 rounded-2xl border flex flex-col justify-between">
-          <div>
-            <!-- ORDER TYPE SELECTOR BUTTONS (DINE IN / TAKEAWAY / DELIVERY) -->
-            <div class="mb-3 border-b pb-2">
-              <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Select Order Type</label>
-              <div class="grid grid-cols-3 gap-1.5" id="order-type-buttons-container">
-                <button onclick="selectOrderType('DINEIN')" id="btn-type-DINEIN" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1 active-order-type">
-                  <i class="fa-solid fa-chair text-xs"></i> Dine-In
-                </button>
-                <button onclick="selectOrderType('TAKEAWAY')" id="btn-type-TAKEAWAY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
-                  <i class="fa-solid fa-bag-shopping text-xs"></i> Takeaway
-                </button>
-                <button onclick="selectOrderType('DELIVERY')" id="btn-type-DELIVERY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
-                  <i class="fa-solid fa-motorcycle text-xs"></i> Delivery
-                </button>
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col justify-between">
+      <header class="bg-white border-b p-3 sm:p-4 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+          <h2 id="current-view-title" class="text-sm font-black text-slate-900 uppercase tracking-wide">POS Terminal & New Order</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openRestaurantEditModal()" class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border hover:bg-slate-200"><i class="fa-solid fa-pen-to-square mr-1"></i> Edit Info</button>
+        </div>
+      </header>
+
+      <main class="p-3 sm:p-5 flex-1">
+        <!-- POS VIEW -->
+        <div id="view-pos" class="view-panel grid grid-cols-12 gap-3">
+          <div class="col-span-12 lg:col-span-7 bg-white p-3 rounded-2xl border">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-bold">Menu Catalog & Stock Quantities</h3>
+              <div class="flex items-center gap-2">
+                <select id="table-select-dropdown" class="bg-indigo-50 border text-xs font-bold text-indigo-700 rounded-xl px-2.5 py-2 outline-none">
+                  <option value="First Floor">First Floor</option>
+                  <option value="Ground Floor">Ground Floor</option>
+                  <option value="Family Hall">Family Hall</option>
+                  <option value="Outdoor Lawn">Outdoor Lawn</option>
+                </select>
+                <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
               </div>
             </div>
-
-            <h2 class="text-sm font-bold border-b pb-2 mb-2 flex justify-between">
-              <span>Cart & Live Orders</span>
-              <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
-            </h2>
-            <div id="order-items-list" class="space-y-1.5 max-h-36 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
-            <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"></div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[520px] overflow-y-auto" id="menu-grid"></div>
           </div>
 
-          <div class="border-t pt-2 space-y-2 mt-2">
-            <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="waiter-name-input" placeholder="Cashier / Waiter Name" value="Waiter First Floor" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
-              <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
-            </div>
-            <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
-            
-            <div class="flex justify-between text-base font-black">
-              <span>Total:</span>
-              <span id="bill-total" class="text-emerald-600">Rs. 0</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <button onclick="checkoutOrder('cash')" class="bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-xs">Push Order</button>
-              <button onclick="printCartDirectReceipt()" class="bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
-            </div>
-            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 text-white py-2 rounded-xl font-bold text-xs">Add to Udhaar Khata</button>
-          </div>
-        </div>
-      </div>
+          <div class="col-span-12 lg:col-span-5 bg-white p-3 rounded-2xl border flex flex-col justify-between">
+            <div>
+              <div class="mb-3 border-b pb-2">
+                <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Select Order Type (Dine-In / Takeaway / Delivery)</label>
+                <div class="grid grid-cols-3 gap-1.5" id="order-type-buttons-container">
+                  <button onclick="selectOrderType('DINEIN')" id="btn-type-DINEIN" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1 active-order-type">
+                    <i class="fa-solid fa-chair text-xs"></i> Dine-In
+                  </button>
+                  <button onclick="selectOrderType('TAKEAWAY')" id="btn-type-TAKEAWAY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-bag-shopping text-xs"></i> Takeaway
+                  </button>
+                  <button onclick="selectOrderType('DELIVERY')" id="btn-type-DELIVERY" class="order-type-btn bg-slate-100 text-slate-700 border font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-motorcycle text-xs"></i> Delivery
+                  </button>
+                </div>
+              </div>
 
-      <!-- KDS VIEW -->
-      <div id="view-kds" class="tab-content hidden bg-slate-900 p-4 rounded-2xl text-white">
-        <h2 class="text-lg font-black text-emerald-400 mb-4">KITCHEN DISPLAY SCREEN (KDS)</h2>
-        <div id="kds-orders-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
-      </div>
+              <h3 class="text-sm font-bold border-b pb-2 mb-2 flex justify-between">
+                <span>Cart & Live Orders</span>
+                <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
+              </h3>
+              <div id="order-items-list" class="space-y-1.5 max-h-36 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
+              <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"></div>
+            </div>
 
-      <!-- UDHAAR VIEW -->
-      <div id="view-credit" class="tab-content hidden bg-white p-4 rounded-2xl border">
-        <h2 class="text-base font-bold mb-3">Udhaar Khata (Pending Dues)</h2>
-        <table class="w-full text-left text-xs">
-          <thead><tr class="bg-slate-100"><th class="p-2">Customer</th><th class="p-2">Table</th><th class="p-2">Amount</th><th class="p-2 text-right">Action</th></tr></thead>
-          <tbody id="credit-dues-tbody"></tbody>
-        </table>
-      </div>
-
-      <!-- ANALYTICS VIEW -->
-      <div id="view-analytics" class="tab-content hidden bg-white p-4 rounded-2xl border space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
-          <h2 class="text-base font-bold">Branch Sales Performance & Analytics</h2>
-          <div class="flex gap-2">
-            <select id="analytics-filter-mode" onchange="renderAnalyticsView()" class="bg-slate-50 border text-xs font-bold rounded-xl px-3 py-2 outline-none">
-              <option value="datetime">Datetime Wise</option>
-              <option value="month">Month Wise</option>
-              <option value="year">Year Wise</option>
-              <option value="menu">Menu Wise</option>
-            </select>
+            <div class="border-t pt-2 space-y-2 mt-2">
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="waiter-name-input" placeholder="Cashier / Waiter Name" value="Counter Cashier" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+                <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+              </div>
+              <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+              
+              <div class="flex justify-between text-base font-black">
+                <span>Total:</span>
+                <span id="bill-total" class="text-emerald-600">Rs. 0</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="checkoutOrder('cash')" class="bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-xs">Push Order</button>
+                <button onclick="printCartDirectReceipt()" class="bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+              </div>
+              <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 text-white py-2 rounded-xl font-bold text-xs">Add to Udhaar Khata</button>
+            </div>
           </div>
         </div>
 
-        <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
+        <!-- KDS VIEW -->
+        <div id="view-kds" class="view-panel hidden bg-slate-900 p-4 rounded-2xl text-white">
+          <h3 class="text-lg font-black text-emerald-400 mb-4">KITCHEN DISPLAY SCREEN (KDS)</h3>
+          <div id="kds-orders-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+        </div>
 
-        <div id="menu-sales-table-container" class="hidden overflow-x-auto mt-4">
-          <h3 class="text-sm font-bold mb-2 text-emerald-700">Menu Items Sales Breakdown</h3>
-          <table class="w-full text-left text-xs border">
-            <thead><tr class="bg-slate-100 border-b"><th class="p-2">Item Name</th><th class="p-2">Total Qty Sold</th><th class="p-2">Total Revenue</th></tr></thead>
-            <tbody id="menu-sales-tbody"></tbody>
+        <!-- UDHAAR VIEW -->
+        <div id="view-credit" class="view-panel hidden bg-white p-4 rounded-2xl border">
+          <h3 class="text-base font-bold mb-3">Udhaar Khata (Pending Dues)</h3>
+          <table class="w-full text-left text-xs">
+            <thead><tr class="bg-slate-100"><th class="p-2">Customer</th><th class="p-2">Order Type</th><th class="p-2">Amount</th><th class="p-2 text-right">Action</th></tr></thead>
+            <tbody id="credit-dues-tbody"></tbody>
           </table>
         </div>
 
-        <!-- DETAILED ORDER LOGS -->
-        <div class="overflow-x-auto mt-6 border-t pt-4">
-          <h3 class="text-sm font-bold mb-2 text-slate-900"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Detailed Order History (Time & Items Purchased)</h3>
-          <table class="w-full text-left text-xs border rounded-xl">
-            <thead>
-              <tr class="bg-slate-100 border-b">
-                <th class="p-2.5">Date & Time</th>
-                <th class="p-2.5">Invoice #</th>
-                <th class="p-2.5">Order Type</th>
-                <th class="p-2.5">Cashier / Waiter</th>
-                <th class="p-2.5">Items Purchased & Qty</th>
-                <th class="p-2.5">Total Amount</th>
-              </tr>
-            </thead>
-            <tbody id="detailed-order-history-tbody"></tbody>
-          </table>
+        <!-- ANALYTICS / REPORTS VIEW -->
+        <div id="view-analytics" class="view-panel hidden bg-white p-4 rounded-2xl border space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-2 border-b pb-3">
+            <h3 class="text-base font-bold text-slate-900" id="report-heading-title">Sales & Financial Reports</h3>
+            <div class="flex gap-2 items-center">
+              <!-- ORDER TYPE FILTER FOR REPORTS -->
+              <select id="report-ordertype-filter" onchange="renderAnalyticsView()" class="bg-emerald-50 border text-xs font-bold text-emerald-800 rounded-xl px-3 py-2 outline-none">
+                <option value="ALL">All Order Types (Dine-In, Takeaway, Delivery)</option>
+                <option value="DINEIN">Dine-In Only</option>
+                <option value="TAKEAWAY">Takeaway Only</option>
+                <option value="DELIVERY">Delivery Only</option>
+              </select>
+              <select id="analytics-filter-mode" onchange="renderAnalyticsView()" class="bg-slate-50 border text-xs font-bold rounded-xl px-3 py-2 outline-none">
+                <option value="menu">Item Wise Sales Summary</option>
+                <option value="sales">Sales Overview</option>
+                <option value="profit">Profit & Loss</option>
+                <option value="datetime">Datetime Wise</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="profit-loss-card" class="hidden bg-emerald-50 border border-emerald-200 p-4 rounded-2xl grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p class="text-[11px] text-slate-500 font-bold uppercase">Total Gross Revenue</p>
+              <h4 id="pl-total-revenue" class="text-lg font-black text-emerald-700">Rs. 0</h4>
+            </div>
+            <div>
+              <p class="text-[11px] text-slate-500 font-bold uppercase">Estimated COGS (Cost)</p>
+              <h4 id="pl-total-cost" class="text-lg font-black text-rose-600">Rs. 0</h4>
+            </div>
+            <div>
+              <p class="text-[11px] text-slate-500 font-bold uppercase">Net Profit</p>
+              <h4 id="pl-net-profit" class="text-lg font-black text-slate-900">Rs. 0</h4>
+            </div>
+          </div>
+
+          <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
+
+          <div id="menu-sales-table-container" class="overflow-x-auto mt-4">
+            <h3 class="text-sm font-bold mb-2 text-emerald-700 flex items-center justify-between">
+              <span><i class="fa-solid fa-list-check mr-1"></i> Item Wise Sales Breakdown (Filtered by Order Type)</span>
+            </h3>
+            <table class="w-full text-left text-xs border rounded-xl">
+              <thead>
+                <tr class="bg-slate-100 border-b">
+                  <th class="p-2.5">Item Name</th>
+                  <th class="p-2.5">Category</th>
+                  <th class="p-2.5">Total Qty Sold</th>
+                  <th class="p-2.5">Total Revenue Generated</th>
+                </tr>
+              </thead>
+              <tbody id="menu-sales-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- DETAILED ORDER LOGS -->
+          <div class="overflow-x-auto mt-6 border-t pt-4">
+            <h3 class="text-sm font-bold mb-2 text-slate-900"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Detailed Order History (Transaction Logs)</h3>
+            <table class="w-full text-left text-xs border rounded-xl">
+              <thead>
+                <tr class="bg-slate-100 border-b">
+                  <th class="p-2.5">Date & Time</th>
+                  <th class="p-2.5">Invoice #</th>
+                  <th class="p-2.5">Order Type</th>
+                  <th class="p-2.5">Service Area</th>
+                  <th class="p-2.5">Cashier / Waiter</th>
+                  <th class="p-2.5">Items Purchased & Qty</th>
+                  <th class="p-2.5">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody id="detailed-order-history-tbody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 
   <script>
@@ -338,23 +404,6 @@
       document.querySelectorAll('.order-type-btn').forEach(btn => btn.classList.remove('active-order-type'));
       const activeBtn = document.getElementById('btn-type-' + typeName);
       if(activeBtn) activeBtn.classList.add('active-order-type');
-      
-      const dropdown = document.getElementById('table-select-dropdown');
-      if(dropdown) {
-        let optExists = Array.from(dropdown.options).some(opt => opt.value === typeName);
-        if(!optExists) {
-          let newOpt = document.createElement('option');
-          newOpt.value = typeName;
-          newOpt.text = typeName;
-          dropdown.add(newOpt);
-        }
-        dropdown.value = typeName;
-      }
-    }
-
-    function syncSelectedOrderTypeFromDropdown() {
-      const val = document.getElementById('table-select-dropdown').value;
-      selectOrderType(val);
     }
 
     function playBeep() {
@@ -433,7 +482,8 @@
             const creditOrders = orders.filter(o => o.status === 'Credit' && !cancelledIds.includes(Number(o.id))).map(o => ({
               id: Number(o.id),
               customerName: o.waiterName || 'Guest',
-              table: o.table,
+              table: o.table || 'DINEIN',
+              serviceArea: o.serviceArea || 'First Floor',
               totalAmount: Number(o.totalAmount),
               items: o.items,
               discount: o.discount || 0,
@@ -446,6 +496,7 @@
               id: Number(o.id),
               total: Number(o.totalAmount),
               table: o.table || 'DINEIN',
+              serviceArea: o.serviceArea || 'First Floor',
               waiterName: o.waiterName || 'Counter',
               time: o.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               fullFormattedDate: o.fullFormattedDate || new Date().toLocaleString(),
@@ -465,15 +516,15 @@
     setInterval(fetchOrdersFromSheet, 4000);
 
     let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
-      name: "Dewan-e-Laziz Sajji and BBQ",
-      branch: "Liauqat Chowk Sabzazar Lahore"
+      name: "DEWAN-E-LAZIZ RESTAURANT",
+      branch: "DEEWAN LAZEEZ TIKKA HOUSE"
     };
 
     function updateRestaurantHeaderUI() {
-      document.getElementById('display-header-restaurant-name').innerHTML = `${restaurantProfile.name} <span class="text-emerald-400">RMS</span>`;
-      document.getElementById('display-header-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+      document.getElementById('display-header-restaurant-name').innerText = restaurantProfile.name;
+      document.getElementById('display-header-branch-name').innerText = restaurantProfile.branch;
       document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
-      document.getElementById('receipt-branch-name').innerText = `Branch: ${restaurantProfile.branch}`;
+      document.getElementById('receipt-branch-name').innerText = restaurantProfile.branch;
     }
 
     function openRestaurantEditModal() {
@@ -492,7 +543,7 @@
       if(!newName) return alert("Please enter a valid restaurant name!");
 
       restaurantProfile.name = newName;
-      restaurantProfile.branch = newBranch || "MAIN BRANCH";
+      restaurantProfile.branch = newBranch || "DEEWAN LAZEEZ TIKKA HOUSE";
       localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(restaurantProfile));
 
       updateRestaurantHeaderUI();
@@ -503,9 +554,7 @@
     let currentCart = [];
     let salesChartInstance = null;
 
-    // DEWAN-E-LAZIZ COMPLETE MENU FROM CARD
     let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      // BARBEQUE
       { id: 1, name: 'Chicken Tikka (1 Piece)', category: 'Barbeque', price: 350, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
       { id: 2, name: 'Chicken Tikka (Half)', category: 'Barbeque', price: 700, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
       { id: 3, name: 'Chicken Tikka (Full)', category: 'Barbeque', price: 1400, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
@@ -531,8 +580,6 @@
       { id: 23, name: 'Cheese Kabab (Full)', category: 'Barbeque', price: 2000, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
       { id: 24, name: 'Leg Piece BBQ', category: 'Barbeque', price: 400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 25, name: 'Chest Piece BBQ', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-
-      // KARAHI & SPECIALS
       { id: 26, name: 'Chicken Karahi (Half)', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
       { id: 27, name: 'Chicken Karahi (Full)', category: 'Karahi', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
       { id: 28, name: 'Mutton Karahi (Half)', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
@@ -550,21 +597,15 @@
       { id: 40, name: 'Kabab Masala (Half)', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
       { id: 41, name: 'Kabab Masala (Full)', category: 'Karahi', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
       { id: 42, name: 'Tawa Piece', category: 'Karahi', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-
-      // SAJJI & FISH
       { id: 43, name: 'Chicken Juicy Sajji (Full)', category: 'Sajji', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 44, name: 'Chicken Sajji (Half)', category: 'Sajji', price: 1300, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 45, name: 'Sajji Quarter Leg', category: 'Sajji', price: 650, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 46, name: 'Sajji Quarter Chest', category: 'Sajji', price: 750, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 47, name: 'Machhli (Per KG)', category: 'Fish', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=500&auto=format&fit=crop&q=80' },
-
-      // ROTI / NAAN & SIDES
       { id: 48, name: 'Sada Naan', category: 'Roti & Naan', price: 30, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
       { id: 49, name: 'Roghni Naan', category: 'Roti & Naan', price: 70, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
       { id: 50, name: 'Raita', category: 'Sides', price: 50, stock: 200, image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80' },
       { id: 51, name: 'Salad', category: 'Sides', price: 100, stock: 200, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=80' },
-
-      // BEVERAGES & WATER
       { id: 52, name: 'Pani Chhoti Bottle', category: 'Beverages', price: 60, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
       { id: 53, name: 'Pani Badi Bottle', category: 'Beverages', price: 120, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
       { id: 54, name: 'Regular Drink', category: 'Beverages', price: 80, stock: 300, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
@@ -574,10 +615,11 @@
       { id: 58, name: 'Coke 1.5 Ltr', category: 'Beverages', price: 220, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' }
     ];
 
-    let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
-      { id: 1, name: 'DINEIN', type: 'Dine-In' },
-      { id: 2, name: 'TAKEAWAY', type: 'Takeaway' },
-      { id: 3, name: 'DELIVERY', type: 'Delivery' }
+    let serviceAreas = JSON.parse(localStorage.getItem('pakrms_service_areas_db')) || [
+      { id: 1, name: 'First Floor' },
+      { id: 2, name: 'Ground Floor' },
+      { id: 3, name: 'Family Hall' },
+      { id: 4, name: 'Outdoor Lawn' }
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
@@ -596,7 +638,8 @@
       currentActiveOrderForKOT = order;
       document.getElementById('receipt-order-id').innerText = `Invoice #: ${order.id}`;
       document.getElementById('receipt-table-no').innerText = `Order Type: ${order.table}`;
-      document.getElementById('receipt-waiter-name').innerText = `Cashier: ${order.waiterName || 'Waiter First Floor'}`;
+      document.getElementById('receipt-service-area').innerText = `Service Area: ${order.serviceArea || 'First Floor'}`;
+      document.getElementById('receipt-waiter-name').innerText = `Cashier: ${order.waiterName || 'Counter Cashier'}`;
       document.getElementById('receipt-time').innerText = `Date: ${order.fullFormattedDate || new Date().toLocaleString()}`;
       
       const subtotal = order.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -636,15 +679,16 @@
       const kotArea = document.getElementById('kot-print-area');
       kotArea.innerHTML = Object.keys(categorizedItems).map(cat => `
         <div style="font-family: monospace; font-size: 12px; margin-bottom: 30px; border-bottom: 1px dashed #000; padding-bottom: 15px;">
-          <div style="text-align: center; font-weight: bold; text-transform: uppercase;">${cat} Receipt</div>
+          <div style="text-align: center; font-weight: bold; text-transform: uppercase;">${cat} KOT (${order.table})</div>
           <br/>
           <div>Date: ${order.fullFormattedDate || new Date().toLocaleString()}</div>
           <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
           <div style="font-size: 16px; font-weight: bold;">Invoice #: ${order.id}</div>
           <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div style="font-size: 14px; font-weight: bold;">Order Type: ${order.table}</div>
+          <div style="font-size: 14px; font-weight: bold; color: #059669;">Order Type: ${order.table}</div>
+          <div style="font-size: 14px; font-weight: bold; color: #4338ca;">Service Area: ${order.serviceArea || 'First Floor'}</div>
           <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div>Cashier: ${order.waiterName || 'Waiter First Floor'}</div>
+          <div>Cashier: ${order.waiterName || 'Counter Cashier'}</div>
           <br/>
           <table style="width: 100%; text-align: left; font-size: 12px; border-collapse: collapse;">
             <thead>
@@ -673,7 +717,8 @@
       const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       const discount = parseFloat(document.getElementById('discount-input').value) || 0;
       const total = Math.max(0, subtotal - discount);
-      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Waiter First Floor';
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter Cashier';
+      const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
       const comments = document.getElementById('order-comments-input').value.trim();
 
       const now = new Date();
@@ -682,6 +727,7 @@
       const tempOrder = {
         id: Math.floor(Math.random() * 89999 + 10000),
         table: currentSelectedOrderType,
+        serviceArea: serviceArea,
         waiterName: waiter,
         items: [...currentCart],
         totalAmount: total,
@@ -787,6 +833,7 @@
       const discount = parseFloat(document.getElementById('discount-input').value) || 0;
       const total = Math.max(0, subtotal - discount);
       const comments = document.getElementById('order-comments-input').value.trim();
+      const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
       
       const now = new Date();
       const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
@@ -798,6 +845,7 @@
         const order = {
           id: Math.floor(Math.random() * 89999 + 10000),
           table: currentSelectedOrderType,
+          serviceArea: serviceArea,
           waiterName: custName,
           items: [...currentCart],
           totalAmount: total,
@@ -818,7 +866,8 @@
         const order = {
           id: Math.floor(Math.random() * 89999 + 10000),
           table: currentSelectedOrderType,
-          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Waiter First Floor',
+          serviceArea: serviceArea,
+          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter Cashier',
           items: [...currentCart],
           totalAmount: total,
           discount: discount,
@@ -834,7 +883,7 @@
         localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
         pushOrderToSheet(order);
         openReceiptModalForOrder(order);
-        showToast("Success", "Order pushed & synced!");
+        showToast("Success", `Order Pushed as ${currentSelectedOrderType}!`);
       }
       currentCart = [];
       document.getElementById('discount-input').value = '';
@@ -850,7 +899,7 @@
       document.getElementById('incoming-orders-queue').innerHTML = active.map(o => `
         <div class="bg-amber-50 border p-2 rounded-xl text-xs flex justify-between items-center">
           <div>
-            <div class="font-bold">#${o.id} - ${o.table} (Rs. ${o.totalAmount})</div>
+            <div class="font-bold">#${o.id} - <span class="text-emerald-700">[${o.table}]</span> [${o.serviceArea || 'Area'}] (Rs. ${o.totalAmount})</div>
             <div class="text-[10px] text-slate-500">${o.items.map(i=>i.name).join(', ')}</div>
             ${o.comments ? `<div class="text-[10px] text-rose-600 font-semibold italic">Note: ${o.comments}</div>` : ''}
           </div>
@@ -893,7 +942,9 @@
       container.innerHTML = kds.map(o => `
         <div class="bg-slate-800 border border-slate-700 p-3 rounded-xl text-white">
           <div class="flex justify-between font-bold border-b border-slate-700 pb-1 mb-2">
-            <span>#${o.id}</span><span>${o.table}</span>
+            <span>#${o.id}</span>
+            <span class="text-emerald-400 uppercase font-black">[${o.table}]</span>
+            <span class="text-indigo-400">${o.serviceArea || 'Area'}</span>
           </div>
           <div class="text-xs space-y-1 mb-2">
             ${o.items.map(i => `<div>${i.name} (${i.category || 'General'}) x${i.qty}</div>`).join('')}
@@ -925,7 +976,7 @@
 
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table || 'DINEIN', waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
+        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table || 'DINEIN', serviceArea: ord.serviceArea || 'First Floor', waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -943,7 +994,7 @@
         return;
       }
       tbody.innerHTML = credit.map(c => `
-        <tr class="border-b"><td class="p-2 font-bold">${c.customerName || c.waiterName}</td><td class="p-2">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
+        <tr class="border-b"><td class="p-2 font-bold">${c.customerName || c.waiterName}</td><td class="p-2 font-bold text-emerald-700">${c.table}</td><td class="p-2 font-bold text-amber-600">Rs. ${c.totalAmount}</td><td class="p-2 text-right"><button onclick="clearCredit(${c.id})" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Paid</button></td></tr>
       `).join('');
     }
 
@@ -954,7 +1005,7 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, table: item.table || 'DINEIN', waiterName: item.customerName || item.waiterName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
+        sales.push({ id: item.id, total: item.totalAmount, table: item.table || 'DINEIN', serviceArea: item.serviceArea || 'First Floor', waiterName: item.customerName || item.waiterName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -963,23 +1014,71 @@
       showToast("Cleared", "Udhaar paid & added to sales.");
     }
 
+    function switchView(viewId, subMode = '') {
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('aside button').forEach(btn => btn.classList.remove('active-nav-btn'));
+
+      if(viewId === 'analytics') {
+        document.getElementById('view-analytics').classList.remove('hidden');
+        if(subMode === 'sales') {
+          document.getElementById('analytics-filter-mode').value = 'sales';
+          document.getElementById('current-view-title').innerText = "Sales Report & Overview";
+          document.getElementById('report-heading-title').innerText = "Sales Report & Overview";
+          document.getElementById('nav-btn-analytics').classList.add('active-nav-btn');
+        } else if(subMode === 'profit') {
+          document.getElementById('analytics-filter-mode').value = 'profit';
+          document.getElementById('current-view-title').innerText = "Profit & Loss Analysis";
+          document.getElementById('report-heading-title').innerText = "Profit & Loss Statement";
+          document.getElementById('nav-btn-profit').classList.add('active-nav-btn');
+        } else if(subMode === 'menu') {
+          document.getElementById('analytics-filter-mode').value = 'menu';
+          document.getElementById('current-view-title').innerText = "Item Wise Sales Breakdown";
+          document.getElementById('report-heading-title').innerText = "Item Wise Sales Report";
+          document.getElementById('nav-btn-itemwise').classList.add('active-nav-btn');
+        }
+        renderAnalyticsView();
+      } else {
+        document.getElementById('view-' + viewId).classList.remove('hidden');
+        if(document.getElementById('nav-btn-' + viewId)) {
+          document.getElementById('nav-btn-' + viewId).classList.add('active-nav-btn');
+        }
+        if(viewId === 'pos') document.getElementById('current-view-title').innerText = "POS Terminal & New Order";
+        if(viewId === 'kds') document.getElementById('current-view-title').innerText = "Kitchen Display Screen (KDS)";
+        if(viewId === 'credit') {
+          document.getElementById('current-view-title').innerText = "Udhaar Khata (Pending Dues)";
+          renderCreditDues();
+        }
+        if(viewId === 'kds') renderKDS();
+      }
+    }
+
     function renderAnalyticsView() {
       let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
       let mode = document.getElementById('analytics-filter-mode').value;
+      let orderTypeFilter = document.getElementById('report-ordertype-filter').value;
       const menuTableContainer = document.getElementById('menu-sales-table-container');
+      const plCard = document.getElementById('profit-loss-card');
+
+      // Filter sales by selected order type (ALL, DINEIN, TAKEAWAY, DELIVERY)
+      let filteredSales = sales;
+      if(orderTypeFilter !== 'ALL') {
+        filteredSales = sales.filter(s => (s.table || 'DINEIN').toUpperCase() === orderTypeFilter.toUpperCase());
+      }
       
       let aggregatedData = {};
       let menuWiseData = {};
       let labels = [];
       let dataValues = [];
 
+      plCard.classList.add('hidden');
+
       if(mode === 'menu') {
         menuTableContainer.classList.remove('hidden');
-        sales.forEach(s => {
+        filteredSales.forEach(s => {
           if(Array.isArray(s.items)) {
             s.items.forEach(i => {
               if(!menuWiseData[i.name]) {
-                menuWiseData[i.name] = { qty: 0, revenue: 0 };
+                menuWiseData[i.name] = { category: i.category || 'General', qty: 0, revenue: 0 };
               }
               menuWiseData[i.name].qty += Number(i.qty || 0);
               menuWiseData[i.name].revenue += Number(i.price || 0) * Number(i.qty || 0);
@@ -991,17 +1090,43 @@
         let menuQtys = menuNames.map(name => menuWiseData[name].qty);
 
         document.getElementById('menu-sales-tbody').innerHTML = menuNames.length > 0 ? menuNames.map(name => `
-          <tr class="border-b"><td class="p-2 font-bold">${name}</td><td class="p-2">${menuWiseData[name].qty}</td><td class="p-2 font-bold text-emerald-600">Rs. ${menuWiseData[name].revenue}</td></tr>
-        `).join('') : `<tr><td colspan="3" class="text-center py-4 text-slate-400">No menu sales recorded yet.</td></tr>`;
+          <tr class="border-b hover:bg-slate-50">
+            <td class="p-2.5 font-bold text-slate-900">${name}</td>
+            <td class="p-2.5 text-slate-600">${menuWiseData[name].category}</td>
+            <td class="p-2.5 font-bold text-emerald-700">${menuWiseData[name].qty}</td>
+            <td class="p-2.5 font-black text-emerald-600">Rs. ${menuWiseData[name].revenue}</td>
+          </tr>
+        `).join('') : `<tr><td colspan="4" class="text-center py-4 text-slate-400">No items sold for this order type.</td></tr>`;
 
         labels = menuNames;
         dataValues = menuQtys;
+      } else if(mode === 'profit') {
+        menuTableContainer.classList.add('hidden');
+        plCard.classList.remove('hidden');
+
+        let totalRev = filteredSales.reduce((sum, s) => sum + Number(s.total || 0), 0);
+        let estimatedCost = totalRev * 0.65;
+        let netProfit = totalRev - estimatedCost;
+
+        document.getElementById('pl-total-revenue').innerText = `Rs. ${totalRev}`;
+        document.getElementById('pl-total-cost').innerText = `Rs. ${Math.round(estimatedCost)}`;
+        document.getElementById('pl-net-profit').innerText = `Rs. ${Math.round(netProfit)}`;
+
+        filteredSales.forEach(s => {
+          let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
+          let key = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          if(!aggregatedData[key]) aggregatedData[key] = 0;
+          aggregatedData[key] += Number(s.total || 0) * 0.35;
+        });
+
+        labels = Object.keys(aggregatedData);
+        dataValues = Object.values(aggregatedData);
       } else {
         menuTableContainer.classList.add('hidden');
-        sales.forEach(s => {
+        filteredSales.forEach(s => {
           let dateObj = s.timestamp ? new Date(s.timestamp) : new Date();
           let key = '';
-          if(mode === 'datetime') {
+          if(mode === 'sales' || mode === 'datetime') {
             key = dateObj.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
           } else if(mode === 'month') {
             key = dateObj.toLocaleString([], { year: 'numeric', month: 'long' });
@@ -1021,13 +1146,13 @@
       if(salesChartInstance) salesChartInstance.destroy();
       
       salesChartInstance = new Chart(ctx, {
-        type: mode === 'datetime' ? 'line' : 'bar',
+        type: mode === 'menu' || mode === 'profit' ? 'bar' : 'line',
         data: {
-          labels: labels.length > 0 ? labels : ['No Sales Yet'],
+          labels: labels.length > 0 ? labels : ['No Data Yet'],
           datasets: [{
-            label: mode === 'menu' ? 'Menu Items Qty Sold' : `Sales (${mode.toUpperCase()} WISE) in PKR`,
+            label: mode === 'menu' ? 'Quantity Sold per Item' : mode === 'profit' ? 'Net Profit (PKR)' : 'Sales Revenue (PKR)',
             data: dataValues.length > 0 ? dataValues : [0],
-            backgroundColor: '#10b981',
+            backgroundColor: mode === 'profit' ? '#059669' : '#10b981',
             borderColor: '#047857',
             borderWidth: 2,
             tension: 0.3,
@@ -1038,30 +1163,21 @@
       });
 
       const logsTbody = document.getElementById('detailed-order-history-tbody');
-      if(sales.length === 0) {
-        logsTbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400">No detailed orders recorded yet.</td></tr>`;
+      if(filteredSales.length === 0) {
+        logsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">No orders recorded for this filter.</td></tr>`;
       } else {
-        logsTbody.innerHTML = sales.map(s => `
+        logsTbody.innerHTML = filteredSales.map(s => `
           <tr class="border-b hover:bg-slate-50">
             <td class="p-2.5 font-semibold text-slate-700">${s.fullFormattedDate || s.time || 'N/A'}</td>
             <td class="p-2.5 font-bold text-slate-900">#${s.id}</td>
-            <td class="p-2.5 font-bold text-amber-600">${s.table || 'DINEIN'}</td>
+            <td class="p-2.5 font-bold text-emerald-700">${s.table || 'DINEIN'}</td>
+            <td class="p-2.5 font-bold text-indigo-600">${s.serviceArea || 'First Floor'}</td>
             <td class="p-2.5 text-slate-600">${s.waiterName || 'Cashier'}</td>
             <td class="p-2.5 font-bold text-emerald-800">${Array.isArray(s.items) ? s.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'N/A'}</td>
             <td class="p-2.5 font-black text-emerald-600">Rs. ${s.total}</td>
           </tr>
         `).join('');
       }
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
-      document.getElementById('view-' + tabId).classList.remove('hidden');
-      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
-      if(tabId === 'analytics') renderAnalyticsView();
-      if(tabId === 'credit') renderCreditDues();
-      if(tabId === 'kds') renderKDS();
     }
 
     function openMenuCrudModal() { document.getElementById('menu-crud-modal').classList.remove('hidden'); renderCrudMenuList(); }
@@ -1140,31 +1256,27 @@
       showToast("Stock Saved", "Inventory updated successfully.");
     }
 
-    function renderTableDropdown() {
-      document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-      selectOrderType(document.getElementById('table-select-dropdown').value || 'DINEIN');
-    }
     function openTableCrudModal() { document.getElementById('table-crud-modal').classList.remove('hidden'); renderTableCrudList(); }
     function closeTableCrudModal() { document.getElementById('table-crud-modal').classList.add('hidden'); }
     function renderTableCrudList() {
-      document.getElementById('tables-list-container').innerHTML = tablesAndSpots.map(t => `
+      document.getElementById('tables-list-container').innerHTML = serviceAreas.map(t => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
           <span>${t.name}</span>
-          <button onclick="tablesAndSpots=tablesAndSpots.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots)); renderTableCrudList(); renderTableDropdown();" class="text-rose-500 font-bold">Delete</button>
+          <button onclick="serviceAreas=serviceAreas.filter(x=>x.id!==${t.id}); localStorage.setItem('pakrms_service_areas_db', JSON.stringify(serviceAreas)); renderTableCrudList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
     }
     function addNewTableOrSpot() {
       const name = document.getElementById('new-spot-name').value.trim();
       if(!name) return;
-      tablesAndSpots.push({ id: Date.now(), name, type: 'Order Type' });
-      localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
+      serviceAreas.push({ id: Date.now(), name });
+      localStorage.setItem('pakrms_service_areas_db', JSON.stringify(serviceAreas));
       document.getElementById('new-spot-name').value = '';
-      renderTableCrudList(); renderTableDropdown();
+      renderTableCrudList();
     }
     function generateSelectedTableQR() {
-      let fullUrl = `${window.location.origin}/customer.html?table=${encodeURIComponent(currentSelectedOrderType)}`;
-      document.getElementById('qr-table-title').innerText = `${currentSelectedOrderType} QR`;
+      let fullUrl = `${window.location.origin}/customer.html?area=Store`;
+      document.getElementById('qr-table-title').innerText = `Restaurant QR`;
       document.getElementById('qrcode-container').innerHTML = '';
       new QRCode(document.getElementById("qrcode-container"), { text: fullUrl, width: 130, height: 130 });
       document.getElementById('qr-modal').classList.remove('hidden');
@@ -1172,7 +1284,7 @@
     function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
     
     function exportSystemDataBackup() {
-      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, tables: tablesAndSpots, stock: stockCatalog, timestamp: new Date().toISOString() };
+      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, areas: serviceAreas, stock: stockCatalog, timestamp: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RMS_Backup_${restaurantProfile.branch}.json`; a.click();
       showToast("Backup Downloaded", "JSON file saved.");
@@ -1188,7 +1300,7 @@
           if(data.profile) localStorage.setItem('pakrms_restaurant_profile', JSON.stringify(data.profile));
           if(data.sales) localStorage.setItem('pakrms_completed_sales_GULBERG', data.sales);
           if(data.menu) localStorage.setItem('pakrms_menu_catalog', JSON.stringify(data.menu));
-          if(data.tables) localStorage.setItem('pakrms_tables_db', JSON.stringify(data.tables));
+          if(data.areas) localStorage.setItem('pakrms_service_areas_db', JSON.stringify(data.areas));
           if(data.stock) localStorage.setItem('pakrms_stock_db', JSON.stringify(data.stock));
           showToast("Restored", "System restored successfully!");
           setTimeout(() => window.location.reload(), 1200);
@@ -1201,7 +1313,6 @@
 
     updateRestaurantHeaderUI();
     renderMenu();
-    renderTableDropdown();
     renderIncomingQueue();
     renderKDS();
     renderCreditDues();
