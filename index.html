@@ -21,7 +21,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- 1. RECEIPT MODAL (BILL PRINTING) -->
+  <!-- 1. RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative">
       <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl no-print">&times;</button>
@@ -35,10 +35,15 @@
           <p id="receipt-time" class="text-[10px] text-slate-400">Time: 12:00 PM</p>
         </div>
         <div id="receipt-items-list" class="space-y-1 border-b pb-2"></div>
+        <div class="space-y-1 border-b pb-2 text-[11px]">
+          <div class="flex justify-between"><span>Subtotal:</span><span id="receipt-subtotal">Rs. 0</span></div>
+          <div class="flex justify-between text-rose-600"><span>Discount:</span><span id="receipt-discount">Rs. 0</span></div>
+        </div>
         <div class="flex justify-between font-black text-sm pb-2 border-b">
           <span>TOTAL:</span>
           <span id="receipt-total-amount">Rs. 0</span>
         </div>
+        <div id="receipt-comments-box" class="text-[10px] text-slate-600 italic border-b pb-1"></div>
         <div class="text-center text-[10px] text-slate-400 pt-1">
           <p>Thank you for visiting!</p>
           <p class="font-bold">Powered by SaaSential Technologies</p>
@@ -105,7 +110,26 @@
     </div>
   </div>
 
-  <!-- 6. QR MODAL -->
+  <!-- 6. STOCK / INVENTORY MODAL -->
+  <div id="stock-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
+      <button onclick="closeStockModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <div>
+        <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Rice & Stock Management</h3>
+        <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
+          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Drinks)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 50)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / crates)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          </div>
+          <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock</button>
+        </div>
+      </div>
+      <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="stock-list-container"></div>
+    </div>
+  </div>
+
+  <!-- 7. QR MODAL -->
   <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
       <button onclick="closeQRModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
@@ -129,10 +153,11 @@
       </div>
 
       <div class="flex items-center space-x-1.5 flex-wrap gap-1">
-        <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Edit Menu</button>
+        <button onclick="openMenuCrudModal()" class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-utensils mr-1"></i> Menu</button>
+        <button onclick="openStockModal()" class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-boxes-stacked mr-1"></i> Stock</button>
         <button onclick="openTableCrudModal()" class="bg-slate-800 text-emerald-400 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-gear"></i> Tables</button>
         <button onclick="exportSystemDataBackup()" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl"><i class="fa-solid fa-download"></i> Backup</button>
-        <label class="bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
+        <label class="bg-rose-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl cursor-pointer"><i class="fa-solid fa-upload"></i> Restore <input type="file" id="restore-file-input" onchange="importSystemDataRestore(event)" class="hidden" accept=".json"></label>
       </div>
     </header>
 
@@ -163,12 +188,17 @@
               <span>Cart & Live Orders</span>
               <span id="incoming-count-badge" class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">0 Active</span>
             </h2>
-            <div id="order-items-list" class="space-y-1.5 max-h-32 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
+            <div id="order-items-list" class="space-y-1.5 max-h-36 overflow-y-auto mb-2 border-b pb-2"><p class="text-slate-400 text-xs text-center py-3">Cart is empty.</p></div>
             <div id="incoming-orders-queue" class="space-y-2 max-h-36 overflow-y-auto"></div>
           </div>
 
-          <div class="border-t pt-2 space-y-2 mt-3">
-            <input type="text" id="waiter-name-input" placeholder="Waiter Name" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <div class="border-t pt-2 space-y-2 mt-2">
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="waiter-name-input" placeholder="Waiter Name" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+              <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+            </div>
+            <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments (e.g. Less spicy)" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+            
             <div class="flex justify-between text-base font-black">
               <span>Total:</span>
               <span id="bill-total" class="text-emerald-600">Rs. 0</span>
@@ -219,13 +249,13 @@
       } catch(e) {}
     }
 
-    async function markOrderCompleteInSheet(orderId) {
+    async function markOrderCompleteInSheet(orderId, actionType = 'completeOrder') {
       try {
         await fetch(SHEET_WEB_APP_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'completeOrder', orderId: orderId })
+          body: JSON.stringify({ action: actionType, orderId: orderId })
         });
       } catch(e) {}
     }
@@ -237,20 +267,22 @@
           const orders = await res.json();
           if(Array.isArray(orders)) {
             let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
-            const active = orders.filter(o => o.status === 'Active' && !completedIds.includes(Number(o.id)));
+            let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
+            
+            const active = orders.filter(o => o.status === 'Active' && !completedIds.includes(Number(o.id)) && !cancelledIds.includes(Number(o.id)));
             localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
             localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
             
-            const creditOrders = orders.filter(o => o.status === 'Credit').map(o => ({
+            const creditOrders = orders.filter(o => o.status === 'Credit' && !cancelledIds.includes(Number(o.id))).map(o => ({
               id: Number(o.id),
               customerName: o.waiterName || 'Guest',
               table: o.table,
               totalAmount: Number(o.totalAmount),
-              items: o.items
+              items: o.items,
+              discount: o.discount || 0,
+              comments: o.comments || ''
             }));
-            if(creditOrders.length > 0) {
-              localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
-            }
+            localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
 
             const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => ({
               id: Number(o.id),
@@ -263,7 +295,6 @@
             }
             renderIncomingQueue();
             renderKDS();
-            renderCreditDues();
           }
         }
       } catch(e) {}
@@ -321,6 +352,12 @@
       { id: 3, name: 'Table 3', type: 'Dine-In' }
     ];
 
+    let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
+      { id: 1, name: 'Basmati Rice', qty: 50, unit: 'kg' },
+      { id: 2, name: 'Cooking Oil', qty: 30, unit: 'liters' },
+      { id: 3, name: 'Chicken Meat', qty: 40, unit: 'kg' }
+    ];
+
     function showToast(title, body) {
       document.getElementById('toast-title').innerText = title;
       document.getElementById('toast-body').innerText = body;
@@ -333,7 +370,22 @@
       document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
       document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || order.customerName || 'Counter'}`;
       document.getElementById('receipt-time').innerText = `Time: ${order.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
+      
+      const subtotal = order.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      const discount = Number(order.discount || 0);
+      const finalTotal = subtotal - discount;
+
+      document.getElementById('receipt-subtotal').innerText = `Rs. ${subtotal}`;
+      document.getElementById('receipt-discount').innerText = `Rs. ${discount}`;
+      document.getElementById('receipt-total-amount').innerText = `Rs. ${finalTotal}`;
+
+      const commentsBox = document.getElementById('receipt-comments-box');
+      if(order.comments) {
+        commentsBox.innerText = `Instructions: ${order.comments}`;
+        commentsBox.classList.remove('hidden');
+      } else {
+        commentsBox.classList.add('hidden');
+      }
       
       const itemsContainer = document.getElementById('receipt-items-list');
       itemsContainer.innerHTML = order.items.map(i => `
@@ -352,8 +404,11 @@
 
     function printCartDirectReceipt() {
       if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const total = Math.max(0, subtotal - discount);
       const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+      const comments = document.getElementById('order-comments-input').value.trim();
 
       const tempOrder = {
         id: Math.floor(Math.random() * 8999 + 1000),
@@ -361,6 +416,8 @@
         waiterName: waiter,
         items: [...currentCart],
         totalAmount: total,
+        discount: discount,
+        comments: comments,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
@@ -397,19 +454,48 @@
       updateCartUI();
     }
 
+    function changeCartQty(id, delta) {
+      const exist = currentCart.find(c => c.id === id);
+      if(exist) {
+        exist.qty += delta;
+        if(exist.qty <= 0) {
+          currentCart = currentCart.filter(c => c.id !== id);
+        }
+      }
+      updateCartUI();
+    }
+
     function updateCartUI() {
       const list = document.getElementById('order-items-list');
-      if(currentCart.length === 0) { list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; }
-      else {
-        list.innerHTML = currentCart.map(c => `<div class="flex justify-between text-xs border-b pb-1"><span>${c.name} (x${c.qty})</span><b class="text-emerald-600">Rs. ${c.price * c.qty}</b></div>`).join('');
+      if(currentCart.length === 0) { 
+        list.innerHTML = `<p class="text-slate-400 text-xs text-center py-2">Cart is empty.</p>`; 
+      } else {
+        list.innerHTML = currentCart.map(c => `
+          <div class="flex justify-between items-center text-xs border-b pb-1.5">
+            <div class="truncate max-w-[120px]">
+              <span class="font-bold">${c.name}</span>
+              <div class="text-[10px] text-emerald-600 font-semibold">Rs. ${c.price * c.qty}</div>
+            </div>
+            <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border">
+              <button onclick="changeCartQty(${c.id}, -1)" class="w-6 h-6 bg-white rounded shadow text-slate-700 font-bold">-</button>
+              <span class="w-5 text-center font-bold">${c.qty}</span>
+              <button onclick="changeCartQty(${c.id}, 1)" class="w-6 h-6 bg-white rounded shadow text-slate-700 font-bold">+</button>
+            </div>
+          </div>
+        `).join('');
       }
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const total = Math.max(0, subtotal - discount);
       document.getElementById('bill-total').innerText = `Rs. ${total}`;
     }
 
     function checkoutOrder(type) {
       if(currentCart.length === 0) return alert("Cart is empty!");
-      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const total = Math.max(0, subtotal - discount);
+      const comments = document.getElementById('order-comments-input').value.trim();
       
       if(type === 'credit') {
         const custName = prompt("Customer Name:") || "Guest";
@@ -419,6 +505,8 @@
           waiterName: custName,
           items: [...currentCart],
           totalAmount: total,
+          discount: discount,
+          comments: comments,
           status: 'Credit',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -435,6 +523,8 @@
           waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter',
           items: [...currentCart],
           totalAmount: total,
+          discount: discount,
+          comments: comments,
           status: 'Active',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -447,6 +537,8 @@
         showToast("Success", "Order pushed & synced!");
       }
       currentCart = [];
+      document.getElementById('discount-input').value = '';
+      document.getElementById('order-comments-input').value = '';
       updateCartUI();
       renderIncomingQueue();
       renderKDS();
@@ -460,10 +552,34 @@
           <div>
             <div class="font-bold">#${o.id} - ${o.table} (Rs. ${o.totalAmount})</div>
             <div class="text-[10px] text-slate-500">${o.items.map(i=>i.name).join(', ')}</div>
+            ${o.comments ? `<div class="text-[10px] text-rose-600 font-semibold italic">Note: ${o.comments}</div>` : ''}
           </div>
-          <button onclick="printSpecificOrderReceipt(${o.id})" class="bg-slate-900 text-white text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-print"></i> Print</button>
+          <div class="space-x-1">
+            <button onclick="printSpecificOrderReceipt(${o.id})" class="bg-slate-900 text-white text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-print"></i></button>
+            <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white text-[10px] px-2 py-1 rounded font-bold">Cancel</button>
+          </div>
         </div>
       `).join('');
+    }
+
+    function cancelOrder(id) {
+      if(!confirm(`Are you sure you want to cancel Order #${id}?`)) return;
+      
+      let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      active = active.filter(o => o.id !== id);
+      localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
+      localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
+
+      let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
+      if(!cancelledIds.includes(Number(id))) {
+        cancelledIds.push(Number(id));
+        localStorage.setItem('pakrms_cancelled_ids', JSON.stringify(cancelledIds));
+      }
+
+      markOrderCompleteInSheet(id, 'cancelOrder');
+      renderIncomingQueue();
+      renderKDS();
+      showToast("Cancelled", `Order #${id} cancelled successfully.`);
     }
 
     function renderKDS() {
@@ -479,10 +595,14 @@
           <div class="flex justify-between font-bold border-b border-slate-700 pb-1 mb-2">
             <span>#${o.id}</span><span>${o.table}</span>
           </div>
-          <div class="text-xs space-y-1 mb-3">
+          <div class="text-xs space-y-1 mb-2">
             ${o.items.map(i => `<div>${i.name} x${i.qty}</div>`).join('')}
           </div>
-          <button onclick="completeOrder(${o.id})" class="w-full bg-emerald-500 text-slate-950 font-black py-2 rounded-lg text-xs">MARK SERVED</button>
+          ${o.comments ? `<div class="text-[11px] text-amber-400 bg-slate-900 p-1.5 rounded mb-2 italic">Note: ${o.comments}</div>` : ''}
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="completeOrder(${o.id})" class="bg-emerald-500 text-slate-950 font-black py-2 rounded-lg text-xs">SERVED</button>
+            <button onclick="cancelOrder(${o.id})" class="bg-rose-600 text-white font-bold py-2 rounded-lg text-xs">CANCEL</button>
+          </div>
         </div>
       `).join('');
     }
@@ -507,7 +627,7 @@
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
         sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
-        markOrderCompleteInSheet(id);
+        markOrderCompleteInSheet(id, 'completeOrder');
       }
       renderKDS();
       renderIncomingQueue();
@@ -536,7 +656,7 @@
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
         sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
-        markOrderCompleteInSheet(id);
+        markOrderCompleteInSheet(id, 'completeOrder');
       }
       renderCreditDues();
       renderAnalyticsView();
@@ -587,6 +707,38 @@
       showToast("Saved", "Menu item added.");
     }
 
+    // STOCK / INVENTORY FUNCTIONS
+    function openStockModal() { document.getElementById('stock-crud-modal').classList.remove('hidden'); renderStockList(); }
+    function closeStockModal() { document.getElementById('stock-crud-modal').classList.add('hidden'); }
+    function renderStockList() {
+      document.getElementById('stock-list-container').innerHTML = stockCatalog.map(s => `
+        <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
+          <div><b class="text-slate-900">${s.name}</b>: <span class="text-amber-600 font-bold">${s.qty} ${s.unit}</span></div>
+          <button onclick="stockCatalog=stockCatalog.filter(x=>x.id!==${s.id}); localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog)); renderStockList();" class="text-rose-500 font-bold">Delete</button>
+        </div>
+      `).join('');
+    }
+    function saveStockItem() {
+      const name = document.getElementById('stock-item-name').value.trim();
+      const qty = parseFloat(document.getElementById('stock-item-qty').value);
+      const unit = document.getElementById('stock-item-unit').value.trim() || 'kg';
+      if(!name || isNaN(qty)) return alert("Enter stock name & quantity!");
+      
+      const exist = stockCatalog.find(s => s.name.toLowerCase() === name.toLowerCase());
+      if(exist) {
+        exist.qty = qty;
+        exist.unit = unit;
+      } else {
+        stockCatalog.push({ id: Date.now(), name, qty, unit });
+      }
+      localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
+      document.getElementById('stock-item-name').value = '';
+      document.getElementById('stock-item-qty').value = '';
+      document.getElementById('stock-item-unit').value = '';
+      renderStockList();
+      showToast("Stock Saved", "Rice & stock updated successfully.");
+    }
+
     function renderTableDropdown() {
       document.getElementById('table-select-dropdown').innerHTML = tablesAndSpots.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
     }
@@ -619,7 +771,7 @@
     function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
     
     function exportSystemDataBackup() {
-      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, tables: tablesAndSpots, timestamp: new Date().toISOString() };
+      const backupData = { profile: restaurantProfile, sales: localStorage.getItem('pakrms_completed_sales_GULBERG'), menu: menuCatalog, tables: tablesAndSpots, stock: stockCatalog, timestamp: new Date().toISOString() };
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'text/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RMS_Backup_${restaurantProfile.branch}.json`; a.click();
       showToast("Backup Downloaded", "JSON file saved.");
@@ -636,6 +788,7 @@
           if(data.sales) localStorage.setItem('pakrms_completed_sales_GULBERG', data.sales);
           if(data.menu) localStorage.setItem('pakrms_menu_catalog', JSON.stringify(data.menu));
           if(data.tables) localStorage.setItem('pakrms_tables_db', JSON.stringify(data.tables));
+          if(data.stock) localStorage.setItem('pakrms_stock_db', JSON.stringify(data.stock));
           showToast("Restored", "System restored successfully!");
           setTimeout(() => window.location.reload(), 1200);
         } catch(err) {
