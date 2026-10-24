@@ -94,15 +94,18 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <div>
-        <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item</h3>
+        <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item & Stock Qty</h3>
         <div class="space-y-2 mb-4">
           <input type="text" id="menu-item-name" placeholder="Item Name (e.g. Biryani)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-          <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+            <input type="number" id="menu-item-stock" placeholder="Initial Stock Qty (e.g. 100)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          </div>
           <input type="text" id="menu-item-image" placeholder="Image URL (Unsplash link)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Save Item</button>
         </div>
       </div>
-      <div class="overflow-y-auto max-h-52 border-t pt-2 space-y-2" id="crud-menu-list-container"></div>
+      <div class="overflow-y-auto max-h-48 border-t pt-2 space-y-2" id="crud-menu-list-container"></div>
     </div>
   </div>
 
@@ -193,7 +196,7 @@
       <div id="view-pos" class="tab-content grid grid-cols-12 gap-3">
         <div class="col-span-12 lg:col-span-7 bg-white p-3 rounded-2xl border">
           <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-bold">Menu Catalog</h2>
+            <h2 class="text-sm font-bold">Menu Catalog & Stock Quantities</h2>
             <div class="flex items-center gap-2">
               <select id="table-select-dropdown" class="bg-emerald-50 border text-xs font-bold rounded-xl px-2.5 py-2 outline-none"></select>
               <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
@@ -267,7 +270,6 @@
   <script>
     const SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3pFNwmL-SA9RPW7Cumyuiem-YFY26G1A9LlEWC4Vfxs7TT0d9tpPLNx2VFm6zYzwjhg/exec';
 
-    // BEEP SOUND GENERATOR USING WEB AUDIO API
     let audioCtx = null;
     let beepInterval = null;
 
@@ -277,7 +279,7 @@
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = 880; // High beep frequency
+        osc.frequency.value = 880;
         gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -288,16 +290,17 @@
 
     function checkStockLevelsAndAlert() {
       let stock = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [];
-      let lowItems = stock.filter(s => s.qty <= 5); // Threshold for low stock is 5 or below
+      let menu = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [];
+      let lowStockItems = [...stock.filter(s => s.qty <= 5), ...menu.filter(m => m.stock !== undefined && m.stock <= 5)];
       let banner = document.getElementById('low-stock-banner');
       
-      if(lowItems.length > 0) {
-        let names = lowItems.map(i => `${i.name} (${i.qty} ${i.unit})`).join(', ');
-        document.getElementById('low-stock-alert-text').innerText = `CRITICAL STOCK ALERT: ${names} running low!`;
+      if(lowStockItems.length > 0) {
+        let names = lowStockItems.map(i => `${i.name} (${i.qty !== undefined ? i.qty + ' ' + (i.unit || '') : i.stock + ' left'})`).join(', ');
+        document.getElementById('low-stock-alert-text').innerText = `CRITICAL ALERT: ${names} running low!`;
         banner.classList.remove('hidden');
         
         if(!beepInterval) {
-          beepInterval = setInterval(playBeep, 1500); // Continuous beep every 1.5 seconds
+          beepInterval = setInterval(playBeep, 1500);
         }
       } else {
         banner.classList.add('hidden');
@@ -375,8 +378,8 @@
     setInterval(fetchOrdersFromSheet, 4000);
 
     let restaurantProfile = JSON.parse(localStorage.getItem('pakrms_restaurant_profile')) || {
-      name: "Bundu Khan Restaurant",
-      branch: "GULBERG"
+      name: "Dewan-e-Laziz Sajji and BBQ",
+      branch: "Liauqat Chowk Sabzazar Lahore"
     };
 
     function updateRestaurantHeaderUI() {
@@ -413,9 +416,9 @@
     let currentCart = [];
     let salesChartInstance = null;
     let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      { id: 1, name: 'Special Chicken Biryani', price: 450, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 3, name: 'Zinger Burger Meal', price: 650, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
+      { id: 1, name: 'Special Chicken Biryani', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, stock: 50, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Zinger Burger Meal', price: 650, stock: 80, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
     ];
 
     let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
@@ -425,9 +428,8 @@
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
-      { id: 1, name: 'Basmati Rice', qty: 2, unit: 'kg' }, // Set low to test alert
-      { id: 2, name: 'Chicken Whole', qty: 3, unit: 'pieces' },
-      { id: 3, name: 'Cooking Oil', qty: 4, unit: 'liters' }
+      { id: 1, name: 'Basmati Rice', qty: 50, unit: 'kg' },
+      { id: 2, name: 'Chicken Whole', qty: 30, unit: 'pieces' }
     ];
 
     function showToast(title, body) {
@@ -510,7 +512,10 @@
         <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer hover:border-emerald-500 transition-colors" onclick="addToCart(${m.id})">
           <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
           <p class="font-bold text-xs">${m.name}</p>
-          <p class="text-emerald-600 font-black text-xs">Rs. ${m.price}</p>
+          <div class="flex justify-between items-center mt-1">
+            <span class="text-emerald-600 font-black text-xs">Rs. ${m.price}</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${m.stock <= 5 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-slate-200 text-slate-700'}">Left: ${m.stock !== undefined ? m.stock : 'N/A'}</span>
+          </div>
         </div>
       `).join('');
     }
@@ -518,6 +523,10 @@
     function addToCart(id) {
       const item = menuCatalog.find(m => m.id === id);
       if(!item) return;
+      if(item.stock !== undefined && item.stock <= 0) {
+        alert(`${item.name} is out of stock!`);
+        return;
+      }
       const exist = currentCart.find(c => c.id === id);
       if(exist) {
         exist.qty++;
@@ -565,17 +574,13 @@
 
     function deductStockForOrder(items) {
       items.forEach(i => {
-        let nameLower = i.name.toLowerCase();
-        stockCatalog.forEach(s => {
-          let sName = s.name.toLowerCase();
-          if(nameLower.includes('biryani') && sName.includes('rice')) {
-            s.qty = Math.max(0, s.qty - (0.5 * i.qty));
-          } else if(nameLower.includes('karahi') && sName.includes('chicken')) {
-            s.qty = Math.max(0, s.qty - (1 * i.qty));
-          }
-        });
+        let menuItm = menuCatalog.find(m => m.id === i.id);
+        if(menuItm && menuItm.stock !== undefined) {
+          menuItm.stock = Math.max(0, menuItm.stock - i.qty);
+        }
       });
-      localStorage.setItem('pakrms_stock_db', JSON.stringify(stockCatalog));
+      localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+      renderMenu();
       checkStockLevelsAndAlert();
     }
 
@@ -756,7 +761,6 @@
       showToast("Cleared", "Udhaar paid & added to sales.");
     }
 
-    // ADVANCED ANALYTICS (DATETIME, MONTH, YEAR WISE)
     function renderAnalyticsView() {
       let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
       let mode = document.getElementById('analytics-filter-mode').value;
@@ -817,7 +821,7 @@
     function renderCrudMenuList() {
       document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${m.name} - Rs. ${m.price}</span>
+          <span>${m.name} - Rs. ${m.price} (Stock: ${m.stock})</span>
           <button onclick="menuCatalog=menuCatalog.filter(x=>x.id!==${m.id}); localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); renderCrudMenuList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
@@ -825,17 +829,18 @@
     function saveMenuItem() {
       const name = document.getElementById('menu-item-name').value.trim();
       const price = parseFloat(document.getElementById('menu-item-price').value);
+      const stock = parseInt(document.getElementById('menu-item-stock').value) || 0;
       const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
-      if(!name || !price) return alert("Enter name & price!");
-      menuCatalog.push({ id: Date.now(), name, price, image });
+      if(!name || isNaN(price)) return alert("Enter valid name & price!");
+      menuCatalog.push({ id: Date.now(), name, price, stock, image });
       localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
       renderMenu(); renderCrudMenuList();
       document.getElementById('menu-item-name').value = '';
       document.getElementById('menu-item-price').value = '';
-      showToast("Saved", "Menu item added.");
+      document.getElementById('menu-item-stock').value = '';
+      showToast("Saved", "Menu item & stock added.");
     }
 
-    // ADMIN AUTH & STOCK FUNCTIONS
     function promptAdminAuth() {
       document.getElementById('admin-pass-input').value = '';
       document.getElementById('admin-auth-modal').classList.remove('hidden');
