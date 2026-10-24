@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Enterprise RMS - Permanent Room Direct Auto-Sync</title>
+  <title>Enterprise RMS - Fixed Auto Sync & Order Cleanup</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
-  <!-- FREE PEERJS FOR REALTIME SYNC -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <style>
@@ -43,6 +41,7 @@
           <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Bundu Khan Restaurant</h3>
           <p id="receipt-branch-name" class="text-[10px] text-slate-500">Branch: GULBERG</p>
           <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Order #1001</p>
+          <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Table: Table 1</p>
           <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Taken By: Counter</p>
           <p id="receipt-time" class="text-[10px] text-slate-400">Time: 12:00 PM</p>
         </div>
@@ -62,7 +61,7 @@
           <input type="text" id="cust-whatsapp-num" placeholder="923001234567" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-semibold outline-none">
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print</button>
+          <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
           <button onclick="sendReceiptToWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp</button>
         </div>
       </div>
@@ -154,12 +153,12 @@
         </div>
       </div>
 
-      <!-- PERMANENT AUTO SYNC STATUS -->
+      <!-- REAL-TIME STATIC SYNC STATUS -->
       <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
         <div class="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="sync-dot"></span>
-          <span class="text-slate-300 font-bold text-[11px]" id="sync-status-text">Connecting Room...</span>
-          <button onclick="changeRoomPrompt()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-[10px] font-bold px-2 py-1 rounded-lg">Change Room</button>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="sync-dot"></span>
+          <span class="text-slate-200 font-bold text-[11px]" id="sync-status-text">Channel Active</span>
+          <button onclick="manualSyncTrigger()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i> Sync Now</button>
         </div>
 
         <div class="flex items-center space-x-1.5">
@@ -218,10 +217,15 @@
               <span>Total Payable:</span>
               <span id="bill-total" class="text-emerald-600">Rs. 0</span>
             </div>
-            <button onclick="checkoutOrder('cash')" class="w-full bg-emerald-600 active:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md active:scale-[0.99] transition-transform">
-              <i class="fa-solid fa-paper-plane mr-1"></i> Push Order (Direct Peer Sync)
-            </button>
-            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 active:bg-amber-700 text-white py-2.5 rounded-xl font-bold text-xs shadow">
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="checkoutOrder('cash')" class="bg-emerald-600 active:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-paper-plane"></i> Push Order
+              </button>
+              <button onclick="printCartDirectReceipt()" class="bg-slate-900 active:bg-slate-800 text-white py-3 rounded-xl font-bold text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-print"></i> Print Bill
+              </button>
+            </div>
+            <button onclick="checkoutOrder('credit')" class="w-full bg-amber-600 active:bg-amber-700 text-white py-2 rounded-xl font-bold text-xs shadow">
               <i class="fa-solid fa-book mr-1"></i> Add to Udhaar Khata
             </button>
           </div>
@@ -276,101 +280,62 @@
   </footer>
 
   <script>
-    // 1. PERMANENT STATIC ROOM AUTO-SYNC (NO UUIDs)
-    let syncRoomName = localStorage.getItem('pakrms_sync_room') || 'saasential-pos-gulberg';
-    let peer = null;
-    let peerConnections = [];
+    // BROADCAST CHANNEL & CROSS-TAB/DEVICE SYNC ENGINE
+    const SYNC_CHANNEL_KEY = 'saasential_rms_sync_state';
+    const broadcastChannel = new BroadcastChannel('saasential_rms_channel');
 
-    function initPeerSync() {
-      const hostPeerId = syncRoomName + '-host';
-      peer = new Peer(hostPeerId);
-
-      peer.on('open', (id) => {
-        updateSyncStatusUI(true, `Host Active: ${syncRoomName}`);
-      });
-
-      peer.on('connection', (conn) => {
-        setupConnection(conn);
-        // Send full state to newly connected client
-        broadcastFullStateToPeers();
-      });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // If host ID exists, connect as a client peer
-          peer = new Peer();
-          peer.on('open', (id) => {
-            const conn = peer.connect(hostPeerId);
-            conn.on('open', () => {
-              setupConnection(conn);
-              updateSyncStatusUI(true, `Client Synced: ${syncRoomName}`);
-            });
-          });
-        } else {
-          updateSyncStatusUI(false, "Sync Offline");
-        }
-      });
-    }
-
-    function updateSyncStatusUI(isConnected, msg) {
-      const dot = document.getElementById('sync-dot');
-      const text = document.getElementById('sync-status-text');
-      text.innerText = msg;
-      if (isConnected) {
-        dot.className = "w-2 h-2 rounded-full bg-emerald-400";
-      } else {
-        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+    broadcastChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'STATE_UPDATE') {
+        applyIncomingFullState(event.data.payload);
       }
-    }
+    };
 
-    function setupConnection(conn) {
-      if(!peerConnections.some(c => c.peer === conn.peer)) {
-        peerConnections.push(conn);
+    window.addEventListener('storage', (e) => {
+      if (e.key === SYNC_CHANNEL_KEY && e.newValue) {
+        try {
+          const payload = JSON.parse(e.newValue);
+          applyIncomingFullState(payload);
+        } catch(err){}
       }
-      conn.on('data', (data) => {
-        if (data.type === 'NEW_ORDER') {
-          processIncomingSyncedOrder(data.order, false);
-        } else if (data.type === 'COMPLETE_ORDER') {
-          completeOrderLocally(data.orderId, false);
-        } else if (data.type === 'SYNC_MENU') {
-          menuCatalog = data.menu;
-          localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
-          renderMenu();
-        } else if (data.type === 'FULL_STATE') {
-          if (data.menu) { menuCatalog = data.menu; localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); }
-          if (data.activeOrders) { localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(data.activeOrders)); renderIncomingQueue(); }
-          if (data.kdsOrders) { localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(data.kdsOrders)); renderKDS(); }
-        }
-      });
-    }
+    });
 
-    function broadcastOrderToPeers(order) {
-      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'NEW_ORDER', order: order }); });
-    }
-
-    function broadcastCompleteToPeers(orderId) {
-      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'COMPLETE_ORDER', orderId: orderId }); });
-    }
-
-    function broadcastMenuToPeers() {
-      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'SYNC_MENU', menu: menuCatalog }); });
-    }
-
-    function broadcastFullStateToPeers() {
-      const state = {
-        menu: menuCatalog,
+    function broadcastCurrentState() {
+      const statePayload = {
         activeOrders: JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [],
-        kdsOrders: JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || []
+        kdsOrders: JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [],
+        sales: JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [],
+        menu: menuCatalog,
+        timestamp: Date.now()
       };
-      peerConnections.forEach(conn => { if(conn.open) conn.send({ type: 'FULL_STATE', ...state }); });
+
+      localStorage.setItem(SYNC_CHANNEL_KEY, JSON.stringify(statePayload));
+      broadcastChannel.postMessage({ type: 'STATE_UPDATE', payload: statePayload });
     }
 
-    function changeRoomPrompt() {
-      const rName = prompt("Enter Permanent Sync Room Name:", syncRoomName);
-      if (rName && rName.trim() !== '') {
-        localStorage.setItem('pakrms_sync_room', rName.trim().toLowerCase().replace(/\s+/g, '-'));
-        window.location.reload();
+    function applyIncomingFullState(payload) {
+      if (!payload) return;
+      if (payload.activeOrders) {
+        localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(payload.activeOrders));
+        renderIncomingQueue();
       }
+      if (payload.kdsOrders) {
+        localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(payload.kdsOrders));
+        renderKDS();
+      }
+      if (payload.sales) {
+        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(payload.sales));
+        renderAnalyticsView();
+      }
+      if (payload.menu) {
+        menuCatalog = payload.menu;
+        localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
+        renderMenu();
+      }
+    }
+
+    function manualSyncTrigger() {
+      broadcastCurrentState();
+      showToast("Synced!", "Data state synchronized across windows.");
     }
 
     // RESTAURANT PROFILE EDITING
@@ -410,7 +375,7 @@
       showToast("Updated!", "Restaurant profile saved.");
     }
 
-    // 2. MAIN SYSTEM LOGIC & MENU CRUD
+    // MAIN SYSTEM LOGIC
     let currentCart = [];
     let salesChartInstance = null;
 
@@ -433,14 +398,51 @@
       t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3500);
     }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
-      document.getElementById('view-' + tabId).classList.remove('hidden');
-      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
-      if(tabId === 'analytics') renderAnalyticsView();
-      if(tabId === 'credit') renderCreditDues();
-      if(tabId === 'kds') renderKDS();
+    function openReceiptModalForOrder(order) {
+      document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
+      document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
+      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || 'Counter'}`;
+      document.getElementById('receipt-time').innerText = `Time: ${order.time}`;
+      document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount}`;
+      
+      const itemsContainer = document.getElementById('receipt-items-list');
+      itemsContainer.innerHTML = order.items.map(i => `
+        <div class="flex justify-between">
+          <span>${i.name} x${i.qty}</span>
+          <span>Rs. ${i.price * i.qty}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('receipt-modal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    function printCartDirectReceipt() {
+      if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
+      const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+
+      const tempOrder = {
+        id: Math.floor(Math.random() * 8999 + 1000),
+        table: document.getElementById('table-select-dropdown').value,
+        waiterName: waiter,
+        items: [...currentCart],
+        totalAmount: total,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      openReceiptModalForOrder(tempOrder);
+    }
+
+    function printSpecificOrderReceipt(orderId) {
+      let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
+      const ord = activeOrders.find(o => o.id === orderId);
+      if(ord) {
+        openReceiptModalForOrder(ord);
+      }
     }
 
     function checkoutOrder(type) {
@@ -466,14 +468,15 @@
         showToast("Udhaar Saved", `Saved for ${custName}`);
         renderCreditDues();
       } else {
-        processIncomingSyncedOrder(order, true);
+        processIncomingSyncedOrder(order);
+        openReceiptModalForOrder(order);
       }
 
       currentCart = [];
       updateCartUI();
     }
 
-    function processIncomingSyncedOrder(order, isLocalSender = false) {
+    function processIncomingSyncedOrder(order) {
       let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
       if(!activeOrders.some(o => o.id === order.id)) {
         activeOrders.push(order);
@@ -485,11 +488,9 @@
 
         renderIncomingQueue();
         renderKDS();
-        showToast("Order Synced!", `#${order.id} (${order.table}) by ${order.waiterName}`);
+        showToast("Order Placed!", `#${order.id} (${order.table}) by ${order.waiterName}`);
 
-        if(isLocalSender) {
-          broadcastOrderToPeers(order);
-        }
+        broadcastCurrentState();
       }
     }
 
@@ -505,9 +506,12 @@
 
       queue.innerHTML = activeOrders.map(ord => `
         <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-xs">
-          <div class="flex justify-between font-bold text-slate-900 mb-0.5">
+          <div class="flex justify-between items-center font-bold text-slate-900 mb-0.5">
             <span>#${ord.id} - ${ord.table}</span>
-            <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-emerald-700 font-extrabold">Rs. ${ord.totalAmount}</span>
+              <button onclick="printSpecificOrderReceipt(${ord.id})" class="bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold"><i class="fa-solid fa-print"></i> Print</button>
+            </div>
           </div>
           <p class="text-slate-600 truncate">${ord.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
           <div class="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 border-t border-amber-200/60 pt-1">
@@ -542,15 +546,12 @@
     }
 
     function completeOrder(id) {
-      completeOrderLocally(id, true);
-    }
-
-    function completeOrderLocally(id, shouldBroadcast = false) {
       let kdsOrders = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
       const ord = kdsOrders.find(o => o.id === id);
       kdsOrders = kdsOrders.filter(o => o.id !== id);
       localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kdsOrders));
       
+      // AUTO REMOVE FROM POS ACTIVE QUEUE UPON KITCHEN COMPLETE
       let activeOrders = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
       activeOrders = activeOrders.filter(o => o.id !== id);
       localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(activeOrders));
@@ -559,16 +560,14 @@
         let completedSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
         completedSales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedSales));
-        showToast("Served", `Rs. ${ord.totalAmount} added to sales.`);
-      }
-
-      if(shouldBroadcast) {
-        broadcastCompleteToPeers(id);
+        showToast("Served & Cleared", `Order #${id} marked completed.`);
       }
 
       renderKDS();
       renderIncomingQueue();
       renderAnalyticsView();
+
+      broadcastCurrentState();
     }
 
     function renderCreditDues() {
@@ -608,6 +607,7 @@
       renderCreditDues();
       renderAnalyticsView();
       showToast("Cleared", "Amount added to sales.");
+      broadcastCurrentState();
     }
 
     function renderAnalyticsView() {
@@ -659,8 +659,8 @@
       renderMenu();
       renderCrudMenuList();
       resetMenuForm();
-      broadcastMenuToPeers();
       showToast("Saved!", "Menu item updated.");
+      broadcastCurrentState();
     }
 
     function editMenuItem(id) {
@@ -679,8 +679,8 @@
       localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
       renderMenu();
       renderCrudMenuList();
-      broadcastMenuToPeers();
       showToast("Deleted", "Menu item removed.");
+      broadcastCurrentState();
     }
 
     function renderCrudMenuList() {
@@ -696,6 +696,16 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+      document.getElementById('btn-' + tabId).classList.add('active-nav-tab');
+      if(tabId === 'analytics') renderAnalyticsView();
+      if(tabId === 'credit') renderCreditDues();
+      if(tabId === 'kds') renderKDS();
     }
 
     function renderTableDropdown() {
@@ -784,7 +794,6 @@
     renderCreditDues();
     renderAnalyticsView();
     switchTab('pos');
-    initPeerSync();
   </script>
 </body>
 </html>
