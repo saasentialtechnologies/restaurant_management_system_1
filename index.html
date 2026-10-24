@@ -96,16 +96,16 @@
     </div>
   </div>
 
-  <!-- MENU CRUD MODAL -->
+  <!-- MENU CRUD MODAL (ADD / UPDATE / DELETE FEATURE RETAINED) -->
   <div id="menu-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <div>
         <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item & Category</h3>
         <div class="space-y-2 mb-4">
-          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. SADA ROTI / FISH)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. Chicken Karahi Full)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="menu-item-category" placeholder="Category (e.g. BBQ / Desi Foods)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+            <input type="text" id="menu-item-category" placeholder="Category (e.g. Karahi / Barbeque)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
             <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           </div>
           <input type="number" id="menu-item-stock" placeholder="Initial Stock Qty" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
@@ -148,7 +148,7 @@
       <div>
         <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Admin Stock & Inventory Management</h3>
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
-          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Chicken)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Chicken / Mutton)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
             <input type="number" id="stock-item-qty" placeholder="Quantity" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
             <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
@@ -200,7 +200,7 @@
     </nav>
 
     <main class="p-2.5 sm:p-4">
-      <!-- POS VIEW: LEFT COLUMN MENU, RIGHT COLUMN CART & ORDER CONTROLS -->
+      <!-- POS VIEW: LEFT MENU, RIGHT CART & CONTROLS -->
       <div id="view-pos" class="tab-content grid grid-cols-12 gap-3">
         <!-- LEFT COLUMN: MENU CATALOG -->
         <div class="col-span-12 lg:col-span-7 bg-white p-3 rounded-2xl border">
@@ -211,7 +211,7 @@
               <button onclick="generateSelectedTableQR()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl">QR</button>
             </div>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto" id="menu-grid"></div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[520px] overflow-y-auto" id="menu-grid"></div>
         </div>
 
         <!-- RIGHT COLUMN: CART & ORDER CONTROLS -->
@@ -502,10 +502,76 @@
 
     let currentCart = [];
     let salesChartInstance = null;
+
+    // DEWAN-E-LAZIZ COMPLETE MENU FROM CARD
     let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      { id: 1, name: 'SADA ROTI', category: 'BBQ', price: 30, stock: 500, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'FISH 1500/KG', category: 'Desi Foods', price: 1500, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 3, name: 'Special Chicken Biryani', category: 'Desi Foods', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' }
+      // BARBEQUE
+      { id: 1, name: 'Chicken Tikka (1 Piece)', category: 'Barbeque', price: 350, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'Chicken Tikka (Half)', category: 'Barbeque', price: 700, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Chicken Tikka (Full)', category: 'Barbeque', price: 1400, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 4, name: 'Malai Boti (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
+      { id: 5, name: 'Malai Boti (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&auto=format&fit=crop&q=80' },
+      { id: 6, name: 'Hari Bhari Boti (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop&q=80' },
+      { id: 7, name: 'Hari Bhari Boti (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&auto=format&fit=crop&q=80' },
+      { id: 8, name: 'Shish Taouk (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80' },
+      { id: 9, name: 'Shish Taouk (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80' },
+      { id: 10, name: 'Special Niblets (Half)', category: 'Barbeque', price: 900, stock: 100, image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=80' },
+      { id: 11, name: 'Special Niblets (Full)', category: 'Barbeque', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=80' },
+      { id: 12, name: 'Chicken Kabab (Single)', category: 'Barbeque', price: 175, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 13, name: 'Chicken Kabab (Half)', category: 'Barbeque', price: 700, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 14, name: 'Chicken Kabab (Full)', category: 'Barbeque', price: 1400, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 15, name: 'Beef Kabab (Single)', category: 'Barbeque', price: 250, stock: 100, image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop&q=80' },
+      { id: 16, name: 'Beef Kabab (Half)', category: 'Barbeque', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop&q=80' },
+      { id: 17, name: 'Beef Kabab (Full)', category: 'Barbeque', price: 2000, stock: 100, image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop&q=80' },
+      { id: 18, name: 'Reshmi Kabab (Single)', category: 'Barbeque', price: 200, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 19, name: 'Reshmi Kabab (Half)', category: 'Barbeque', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 20, name: 'Reshmi Kabab (Full)', category: 'Barbeque', price: 1600, stock: 100, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&auto=format&fit=crop&q=80' },
+      { id: 21, name: 'Cheese Kabab (Single)', category: 'Barbeque', price: 250, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 22, name: 'Cheese Kabab (Half)', category: 'Barbeque', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 23, name: 'Cheese Kabab (Full)', category: 'Barbeque', price: 2000, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 24, name: 'Leg Piece BBQ', category: 'Barbeque', price: 400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 25, name: 'Chest Piece BBQ', category: 'Barbeque', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+
+      // KARAHI & SPECIALS
+      { id: 26, name: 'Chicken Karahi (Half)', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 27, name: 'Chicken Karahi (Full)', category: 'Karahi', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 28, name: 'Mutton Karahi (Half)', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
+      { id: 29, name: 'Mutton Karahi (Full)', category: 'Karahi', price: 4800, stock: 100, image: 'https://images.unsplash.com/photo-1545247181-516773cae754?w=500&auto=format&fit=crop&q=80' },
+      { id: 30, name: 'Desi Murgh Karahi (Half)', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 31, name: 'Desi Murgh Karahi (Full)', category: 'Karahi', price: 4800, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 32, name: 'Mutton Keema (Half)', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500&auto=format&fit=crop&q=80' },
+      { id: 33, name: 'Mutton Keema (Full)', category: 'Karahi', price: 5000, stock: 100, image: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500&auto=format&fit=crop&q=80' },
+      { id: 34, name: 'Beef Kabab Masala (Half)', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop&q=80' },
+      { id: 35, name: 'Beef Kabab Masala (Full)', category: 'Karahi', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=500&auto=format&fit=crop&q=80' },
+      { id: 36, name: 'Mutton Champ Roast (Half)', category: 'Karahi', price: 2500, stock: 100, image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80' },
+      { id: 37, name: 'Mutton Champ Roast (Full)', category: 'Karahi', price: 5000, stock: 100, image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80' },
+      { id: 38, name: 'Chicken White Karahi (Half)', category: 'Karahi', price: 1200, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 39, name: 'Chicken White Karahi (Full)', category: 'Karahi', price: 2000, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 40, name: 'Kabab Masala (Half)', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 41, name: 'Kabab Masala (Full)', category: 'Karahi', price: 1800, stock: 100, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&auto=format&fit=crop&q=80' },
+      { id: 42, name: 'Tawa Piece', category: 'Karahi', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+
+      // SAJJI & FISH
+      { id: 43, name: 'Chicken Juicy Sajji (Full)', category: 'Sajji', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 44, name: 'Chicken Sajji (Half)', category: 'Sajji', price: 1300, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 45, name: 'Sajji Quarter Leg', category: 'Sajji', price: 650, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 46, name: 'Sajji Quarter Chest', category: 'Sajji', price: 750, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
+      { id: 47, name: 'Machhli (Per KG)', category: 'Fish', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=500&auto=format&fit=crop&q=80' },
+
+      // ROTI / NAAN & SIDES
+      { id: 48, name: 'Sada Naan', category: 'Roti & Naan', price: 30, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
+      { id: 49, name: 'Roghni Naan', category: 'Roti & Naan', price: 70, stock: 500, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop&q=80' },
+      { id: 50, name: 'Raita', category: 'Sides', price: 50, stock: 200, image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80' },
+      { id: 51, name: 'Salad', category: 'Sides', price: 100, stock: 200, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=80' },
+
+      // BEVERAGES & WATER
+      { id: 52, name: 'Pani Chhoti Bottle', category: 'Beverages', price: 60, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
+      { id: 53, name: 'Pani Badi Bottle', category: 'Beverages', price: 120, stock: 300, image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80' },
+      { id: 54, name: 'Regular Drink', category: 'Beverages', price: 80, stock: 300, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 55, name: 'Next Cola 1 Ltr', category: 'Beverages', price: 150, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 56, name: 'Next Cola 1.5 Ltr', category: 'Beverages', price: 200, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 57, name: 'Coke 1 Ltr', category: 'Beverages', price: 170, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' },
+      { id: 58, name: 'Coke 1.5 Ltr', category: 'Beverages', price: 220, stock: 200, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=80' }
     ];
 
     let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
@@ -515,8 +581,8 @@
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
-      { id: 1, name: 'Basmati Rice', qty: 50, unit: 'kg' },
-      { id: 2, name: 'Fish Stock', qty: 30, unit: 'kg' }
+      { id: 1, name: 'Chicken Stock', qty: 50, unit: 'kg' },
+      { id: 2, name: 'Mutton Stock', qty: 30, unit: 'kg' }
     ];
 
     function showToast(title, body) {
