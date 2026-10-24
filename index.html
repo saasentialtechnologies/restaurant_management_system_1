@@ -11,8 +11,8 @@
   <style>
     @media print {
       body * { visibility: hidden; }
-      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt * { visibility: visible; }
-      #receipt-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white !important; display: flex !important; align-items: flex-start; justify-content: center; }
+      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible; }
+      #receipt-modal, #kot-print-area { position: absolute; left: 0; top: 0; width: 100%; background: white !important; display: block !important; }
       .no-print { display: none !important; }
     }
     .active-nav-tab { background-color: #059669 !important; color: #ffffff !important; font-weight: 800 !important; }
@@ -20,6 +20,9 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- KOT PRINT AREA (HIDDEN IN SCREEN, VISIBLE IN PRINT) -->
+  <div id="kot-print-area" class="hidden"></div>
 
   <!-- LOW STOCK ALERT BANNER -->
   <div id="low-stock-banner" class="hidden bg-rose-600 text-white px-4 py-2 text-xs font-bold flex justify-between items-center shadow-lg animate-pulse">
@@ -36,12 +39,12 @@
       <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl no-print">&times;</button>
       <div id="printable-receipt" class="bg-slate-50 border p-4 rounded-xl text-slate-900 font-mono text-xs mb-4 space-y-2">
         <div class="text-center border-b pb-2">
-          <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Bundu Khan Restaurant</h3>
-          <p id="receipt-branch-name" class="text-[10px] text-slate-500">Branch: GULBERG</p>
-          <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Order #1001</p>
-          <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Table: Table 1</p>
-          <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Taken By: Counter</p>
-          <p id="receipt-time" class="text-[10px] text-slate-400">Time: 12:00 PM</p>
+          <h3 id="receipt-brand-name" class="font-black text-sm uppercase">Dewan-e-Laziz Sajji and BBQ</h3>
+          <p id="receipt-branch-name" class="text-[10px] text-slate-500">Branch: Liauqat Chowk Sabzazar Lahore</p>
+          <p id="receipt-order-id" class="text-[11px] font-bold mt-1">Invoice #: 12240</p>
+          <p id="receipt-table-no" class="text-[10px] text-amber-600 font-bold">Order Type: DINEIN</p>
+          <p id="receipt-waiter-name" class="text-[10px] text-emerald-600 font-bold">Cashier: Waiter First Floor</p>
+          <p id="receipt-time" class="text-[10px] text-slate-400">Date: Saturday, October 24th 2026</p>
         </div>
         <div id="receipt-items-list" class="space-y-1 border-b pb-2"></div>
         <div class="space-y-1 border-b pb-2 text-[11px]">
@@ -58,7 +61,10 @@
           <p class="font-bold">Powered by SaaSential Technologies</p>
         </div>
       </div>
-      <button onclick="window.print()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs no-print flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+      <div class="grid grid-cols-2 gap-2 no-print">
+        <button onclick="printCategoryWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print KOT</button>
+        <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+      </div>
     </div>
   </div>
 
@@ -94,14 +100,15 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
       <button onclick="closeMenuCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <div>
-        <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item & Stock Qty</h3>
+        <h3 class="text-base font-bold text-slate-900 mb-3">Add / Edit Menu Item & Category</h3>
         <div class="space-y-2 mb-4">
-          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. Biryani)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="menu-item-name" placeholder="Item Name (e.g. SADA ROTI / FISH)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="menu-item-category" placeholder="Category (e.g. BBQ / Desi Foods)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
             <input type="number" id="menu-item-price" placeholder="Price (PKR)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
-            <input type="number" id="menu-item-stock" placeholder="Initial Stock Qty (e.g. 100)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           </div>
-          <input type="text" id="menu-item-image" placeholder="Image URL (Unsplash link)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <input type="number" id="menu-item-stock" placeholder="Initial Stock Qty" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
+          <input type="text" id="menu-item-image" placeholder="Image URL (Optional)" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none">
           <button onclick="saveMenuItem()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Save Item</button>
         </div>
       </div>
@@ -113,9 +120,9 @@
   <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
       <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
-      <h3 class="text-base font-bold text-slate-900 mb-3">Manage Tables</h3>
+      <h3 class="text-base font-bold text-slate-900 mb-3">Manage Order Types / Tables</h3>
       <div class="grid grid-cols-12 gap-2 mb-4">
-        <input type="text" id="new-spot-name" placeholder="Table Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
+        <input type="text" id="new-spot-name" placeholder="Type Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
         <button onclick="addNewTableOrSpot()" class="col-span-4 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">Add</button>
       </div>
       <div class="max-h-60 overflow-y-auto space-y-2" id="tables-list-container"></div>
@@ -142,7 +149,7 @@
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
           <input type="text" id="stock-item-name" placeholder="Item Name (e.g. Basmati Rice / Chicken)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           <div class="grid grid-cols-2 gap-2">
-            <input type="number" id="stock-item-qty" placeholder="Quantity (e.g. 10)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
+            <input type="number" id="stock-item-qty" placeholder="Quantity" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
             <input type="text" id="stock-item-unit" placeholder="Unit (e.g. kg / pieces)" class="w-full bg-white border p-2.5 rounded-xl text-xs outline-none">
           </div>
           <button onclick="saveStockItem()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs">Add / Update Stock Item</button>
@@ -217,7 +224,7 @@
 
           <div class="border-t pt-2 space-y-2 mt-2">
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="waiter-name-input" placeholder="Waiter Name" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
+              <input type="text" id="waiter-name-input" placeholder="Cashier / Waiter Name" value="Waiter First Floor" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
               <input type="number" id="discount-input" placeholder="Discount (Rs)" oninput="updateCartUI()" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
             </div>
             <input type="text" id="order-comments-input" placeholder="Special Instructions / Comments" class="w-full bg-slate-50 border p-2 rounded-xl text-xs outline-none">
@@ -263,12 +270,32 @@
             </select>
           </div>
         </div>
-        <div class="h-72"><canvas id="branchSalesChartCanvas"></canvas></div>
+
+        <div class="h-64"><canvas id="branchSalesChartCanvas"></canvas></div>
+
         <div id="menu-sales-table-container" class="hidden overflow-x-auto mt-4">
-          <h3 class="text-sm font-bold mb-2">Menu Items Sales Breakdown</h3>
+          <h3 class="text-sm font-bold mb-2 text-emerald-700">Menu Items Sales Breakdown</h3>
           <table class="w-full text-left text-xs border">
             <thead><tr class="bg-slate-100 border-b"><th class="p-2">Item Name</th><th class="p-2">Total Qty Sold</th><th class="p-2">Total Revenue</th></tr></thead>
             <tbody id="menu-sales-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- DETAILED ORDER LOGS (TIMESTAMP & FOOD ITEMS PURCHASED) -->
+        <div class="overflow-x-auto mt-6 border-t pt-4">
+          <h3 class="text-sm font-bold mb-2 text-slate-900"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Detailed Order History (Time & Items Purchased)</h3>
+          <table class="w-full text-left text-xs border rounded-xl">
+            <thead>
+              <tr class="bg-slate-100 border-b">
+                <th class="p-2.5">Date & Time</th>
+                <th class="p-2.5">Invoice #</th>
+                <th class="p-2.5">Order Type</th>
+                <th class="p-2.5">Cashier / Waiter</th>
+                <th class="p-2.5">Items Purchased & Qty</th>
+                <th class="p-2.5">Total Amount</th>
+              </tr>
+            </thead>
+            <tbody id="detailed-order-history-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -284,6 +311,7 @@
 
     let audioCtx = null;
     let beepInterval = null;
+    let currentActiveOrderForKOT = null;
 
     function playBeep() {
       try {
@@ -373,8 +401,10 @@
             const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => ({
               id: Number(o.id),
               total: Number(o.totalAmount),
+              table: o.table || 'DINEIN',
               waiterName: o.waiterName || 'Counter',
               time: o.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              fullFormattedDate: o.fullFormattedDate || new Date().toLocaleString(),
               timestamp: o.timestamp || new Date().toISOString(),
               items: o.items || []
             }));
@@ -429,20 +459,20 @@
     let currentCart = [];
     let salesChartInstance = null;
     let menuCatalog = JSON.parse(localStorage.getItem('pakrms_menu_catalog')) || [
-      { id: 1, name: 'Special Chicken Biryani', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
-      { id: 2, name: 'Mutton Karahi (Half)', price: 1850, stock: 50, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
-      { id: 3, name: 'Zinger Burger Meal', price: 650, stock: 80, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=80' }
+      { id: 1, name: 'SADA ROTI', category: 'BBQ', price: 30, stock: 500, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' },
+      { id: 2, name: 'FISH 1500/KG', category: 'Desi Foods', price: 1500, stock: 100, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop&q=80' },
+      { id: 3, name: 'Special Chicken Biryani', category: 'Desi Foods', price: 450, stock: 100, image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80' }
     ];
 
     let tablesAndSpots = JSON.parse(localStorage.getItem('pakrms_tables_db')) || [
-      { id: 1, name: 'Table 1', type: 'Dine-In' },
-      { id: 2, name: 'Table 2', type: 'Dine-In' },
-      { id: 3, name: 'Table 3', type: 'Dine-In' }
+      { id: 1, name: 'DINEIN', type: 'Dine-In' },
+      { id: 2, name: 'TAKEAWAY', type: 'Takeaway' },
+      { id: 3, name: 'DELIVERY', type: 'Delivery' }
     ];
 
     let stockCatalog = JSON.parse(localStorage.getItem('pakrms_stock_db')) || [
       { id: 1, name: 'Basmati Rice', qty: 50, unit: 'kg' },
-      { id: 2, name: 'Chicken Whole', qty: 30, unit: 'pieces' }
+      { id: 2, name: 'Fish Stock', qty: 30, unit: 'kg' }
     ];
 
     function showToast(title, body) {
@@ -453,10 +483,11 @@
     }
 
     function openReceiptModalForOrder(order) {
-      document.getElementById('receipt-order-id').innerText = `Order #${order.id}`;
-      document.getElementById('receipt-table-no').innerText = `Table: ${order.table}`;
-      document.getElementById('receipt-waiter-name').innerText = `Taken By: ${order.waiterName || order.customerName || 'Counter'}`;
-      document.getElementById('receipt-time').innerText = `Time: ${order.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      currentActiveOrderForKOT = order;
+      document.getElementById('receipt-order-id').innerText = `Invoice #: ${order.id}`;
+      document.getElementById('receipt-table-no').innerText = `Order Type: ${order.table}`;
+      document.getElementById('receipt-waiter-name').innerText = `Cashier: ${order.waiterName || 'Waiter First Floor'}`;
+      document.getElementById('receipt-time').innerText = `Date: ${order.fullFormattedDate || new Date().toLocaleString()}`;
       
       const subtotal = order.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
       const discount = Number(order.discount || 0);
@@ -466,18 +497,10 @@
       document.getElementById('receipt-discount').innerText = `Rs. ${discount}`;
       document.getElementById('receipt-total-amount').innerText = `Rs. ${finalTotal}`;
 
-      const commentsBox = document.getElementById('receipt-comments-box');
-      if(order.comments) {
-        commentsBox.innerText = `Instructions: ${order.comments}`;
-        commentsBox.classList.remove('hidden');
-      } else {
-        commentsBox.classList.add('hidden');
-      }
-      
       const itemsContainer = document.getElementById('receipt-items-list');
       itemsContainer.innerHTML = order.items.map(i => `
         <div class="flex justify-between">
-          <span>${i.name} x${i.qty}</span>
+          <span>${i.name} (${i.category || 'General'}) x${i.qty}</span>
           <span>Rs. ${i.price * i.qty}</span>
         </div>
       `).join('');
@@ -489,24 +512,74 @@
       document.getElementById('receipt-modal').classList.add('hidden');
     }
 
+    function printCategoryWiseKOT() {
+      if(!currentActiveOrderForKOT) return;
+      const order = currentActiveOrderForKOT;
+      
+      let categorizedItems = {};
+      order.items.forEach(i => {
+        let cat = i.category || 'General';
+        if(!categorizedItems[cat]) categorizedItems[cat] = [];
+        categorizedItems[cat].push(i);
+      });
+
+      const kotArea = document.getElementById('kot-print-area');
+      kotArea.innerHTML = Object.keys(categorizedItems).map(cat => `
+        <div style="font-family: monospace; font-size: 12px; margin-bottom: 30px; border-bottom: 1px dashed #000; padding-bottom: 15px;">
+          <div style="text-align: center; font-weight: bold; text-transform: uppercase;">${cat} Receipt</div>
+          <br/>
+          <div>Date: ${order.fullFormattedDate || new Date().toLocaleString()}</div>
+          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
+          <div style="font-size: 16px; font-weight: bold;">Invoice #: ${order.id}</div>
+          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
+          <div style="font-size: 14px; font-weight: bold;">Order Type: ${order.table}</div>
+          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
+          <div>Cashier: ${order.waiterName || 'Waiter First Floor'}</div>
+          <br/>
+          <table style="width: 100%; text-align: left; font-size: 12px; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid #000;">
+                <th style="padding: 4px 0;">Description</th>
+                <th style="padding: 4px 0; text-align: right;">QTY</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${categorizedItems[cat].map(item => `
+                <tr>
+                  <td style="padding: 4px 0; font-weight: bold;">${item.name}</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: bold;">${item.qty}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('');
+
+      window.print();
+    }
+
     function printCartDirectReceipt() {
       if(currentCart.length === 0) return alert("Cart is empty! Add items first.");
       const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       const discount = parseFloat(document.getElementById('discount-input').value) || 0;
       const total = Math.max(0, subtotal - discount);
-      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Counter';
+      const waiter = document.getElementById('waiter-name-input').value.trim() || 'Waiter First Floor';
       const comments = document.getElementById('order-comments-input').value.trim();
 
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
+
       const tempOrder = {
-        id: Math.floor(Math.random() * 8999 + 1000),
+        id: Math.floor(Math.random() * 89999 + 10000),
         table: document.getElementById('table-select-dropdown').value,
         waiterName: waiter,
         items: [...currentCart],
         totalAmount: total,
         discount: discount,
         comments: comments,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timestamp: new Date().toISOString()
+        fullFormattedDate: formattedDate,
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: now.toISOString()
       };
 
       openReceiptModalForOrder(tempOrder);
@@ -525,6 +598,7 @@
         <div class="bg-slate-50 border p-2 rounded-xl flex flex-col justify-between cursor-pointer hover:border-emerald-500 transition-colors" onclick="addToCart(${m.id})">
           <img src="${m.image}" class="h-20 rounded-lg object-cover mb-1">
           <p class="font-bold text-xs">${m.name}</p>
+          <span class="text-[10px] text-slate-500 font-bold">${m.category || 'General'}</span>
           <div class="flex justify-between items-center mt-1">
             <span class="text-emerald-600 font-black text-xs">Rs. ${m.price}</span>
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${m.stock <= 5 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-slate-200 text-slate-700'}">Left: ${m.stock !== undefined ? m.stock : 'N/A'}</span>
@@ -604,12 +678,15 @@
       const total = Math.max(0, subtotal - discount);
       const comments = document.getElementById('order-comments-input').value.trim();
       
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + `, ` + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
+
       deductStockForOrder(currentCart);
 
       if(type === 'credit') {
         const custName = prompt("Customer Name:") || "Guest";
         const order = {
-          id: Math.floor(Math.random() * 8999 + 1000),
+          id: Math.floor(Math.random() * 89999 + 10000),
           table: document.getElementById('table-select-dropdown').value,
           waiterName: custName,
           items: [...currentCart],
@@ -617,8 +694,9 @@
           discount: discount,
           comments: comments,
           status: 'Credit',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timestamp: new Date().toISOString()
+          fullFormattedDate: formattedDate,
+          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: now.toISOString()
         };
         let credit = JSON.parse(localStorage.getItem('pakrms_credit_dues')) || [];
         credit.push({ ...order, customerName: custName });
@@ -628,16 +706,17 @@
         renderCreditDues();
       } else {
         const order = {
-          id: Math.floor(Math.random() * 8999 + 1000),
+          id: Math.floor(Math.random() * 89999 + 10000),
           table: document.getElementById('table-select-dropdown').value,
-          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Counter',
+          waiterName: document.getElementById('waiter-name-input').value.trim() || 'Waiter First Floor',
           items: [...currentCart],
           totalAmount: total,
           discount: discount,
           comments: comments,
           status: 'Active',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timestamp: new Date().toISOString()
+          fullFormattedDate: formattedDate,
+          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: now.toISOString()
         };
         let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
         active.push(order);
@@ -707,7 +786,7 @@
             <span>#${o.id}</span><span>${o.table}</span>
           </div>
           <div class="text-xs space-y-1 mb-2">
-            ${o.items.map(i => `<div>${i.name} x${i.qty}</div>`).join('')}
+            ${o.items.map(i => `<div>${i.name} (${i.category || 'General'}) x${i.qty}</div>`).join('')}
           </div>
           ${o.comments ? `<div class="text-[11px] text-amber-400 bg-slate-900 p-1.5 rounded mb-2 italic">Note: ${o.comments}</div>` : ''}
           <div class="grid grid-cols-2 gap-2">
@@ -736,7 +815,7 @@
 
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, waiterName: ord.waiterName, time: ord.time, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
+        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table || 'DINEIN', waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp || new Date().toISOString(), items: ord.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -765,7 +844,7 @@
       localStorage.setItem('pakrms_credit_dues', JSON.stringify(credit));
       if(item) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: item.id, total: item.totalAmount, waiterName: item.customerName || item.waiterName, time: item.time, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
+        sales.push({ id: item.id, total: item.totalAmount, table: item.table || 'DINEIN', waiterName: item.customerName || item.waiterName, time: item.time, fullFormattedDate: item.fullFormattedDate, timestamp: item.timestamp || new Date().toISOString(), items: item.items });
         localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
         markOrderCompleteInSheet(id, 'completeOrder');
       }
@@ -781,6 +860,8 @@
       
       let aggregatedData = {};
       let menuWiseData = {};
+      let labels = [];
+      let dataValues = [];
 
       if(mode === 'menu') {
         menuTableContainer.classList.remove('hidden');
@@ -845,6 +926,23 @@
         },
         options: { responsive: true, maintainAspectRatio: false }
       });
+
+      // RENDER DETAILED ORDER LOGS (TIMESTAMP & FOOD ITEMS PURCHASED)
+      const logsTbody = document.getElementById('detailed-order-history-tbody');
+      if(sales.length === 0) {
+        logsTbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400">No detailed orders recorded yet.</td></tr>`;
+      } else {
+        logsTbody.innerHTML = sales.map(s => `
+          <tr class="border-b hover:bg-slate-50">
+            <td class="p-2.5 font-semibold text-slate-700">${s.fullFormattedDate || s.time || 'N/A'}</td>
+            <td class="p-2.5 font-bold text-slate-900">#${s.id}</td>
+            <td class="p-2.5 font-bold text-amber-600">${s.table || 'DINEIN'}</td>
+            <td class="p-2.5 text-slate-600">${s.waiterName || 'Cashier'}</td>
+            <td class="p-2.5 font-bold text-emerald-800">${Array.isArray(s.items) ? s.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'N/A'}</td>
+            <td class="p-2.5 font-black text-emerald-600">Rs. ${s.total}</td>
+          </tr>
+        `).join('');
+      }
     }
 
     function switchTab(tabId) {
@@ -862,24 +960,26 @@
     function renderCrudMenuList() {
       document.getElementById('crud-menu-list-container').innerHTML = menuCatalog.map(m => `
         <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs">
-          <span>${m.name} - Rs. ${m.price} (Stock: ${m.stock})</span>
+          <span>${m.name} (${m.category}) - Rs. ${m.price} (Stock: ${m.stock})</span>
           <button onclick="menuCatalog=menuCatalog.filter(x=>x.id!==${m.id}); localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog)); renderMenu(); renderCrudMenuList();" class="text-rose-500 font-bold">Delete</button>
         </div>
       `).join('');
     }
     function saveMenuItem() {
       const name = document.getElementById('menu-item-name').value.trim();
+      const category = document.getElementById('menu-item-category').value.trim() || 'General';
       const price = parseFloat(document.getElementById('menu-item-price').value);
       const stock = parseInt(document.getElementById('menu-item-stock').value) || 0;
       const image = document.getElementById('menu-item-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80';
       if(!name || isNaN(price)) return alert("Enter valid name & price!");
-      menuCatalog.push({ id: Date.now(), name, price, stock, image });
+      menuCatalog.push({ id: Date.now(), name, category, price, stock, image });
       localStorage.setItem('pakrms_menu_catalog', JSON.stringify(menuCatalog));
       renderMenu(); renderCrudMenuList();
       document.getElementById('menu-item-name').value = '';
+      document.getElementById('menu-item-category').value = '';
       document.getElementById('menu-item-price').value = '';
       document.getElementById('menu-item-stock').value = '';
-      showToast("Saved", "Menu item & stock added.");
+      showToast("Saved", "Menu item & category added.");
     }
 
     function promptAdminAuth() {
@@ -947,7 +1047,7 @@
     function addNewTableOrSpot() {
       const name = document.getElementById('new-spot-name').value.trim();
       if(!name) return;
-      tablesAndSpots.push({ id: Date.now(), name, type: 'Dine-In' });
+      tablesAndSpots.push({ id: Date.now(), name, type: 'Order Type' });
       localStorage.setItem('pakrms_tables_db', JSON.stringify(tablesAndSpots));
       document.getElementById('new-spot-name').value = '';
       renderTableCrudList(); renderTableDropdown();
