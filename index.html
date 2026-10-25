@@ -556,19 +556,36 @@
             }));
             localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
 
-            const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => ({
-              id: Number(o.id),
-              total: Number(o.totalAmount),
-              table: o.table || 'DINEIN',
-              serviceArea: o.serviceArea || 'First Floor',
-              waiterName: o.waiterName || 'Counter',
-              time: o.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              fullFormattedDate: o.fullFormattedDate || new Date().toLocaleString(),
-              timestamp: o.timestamp || new Date().toISOString(),
-              items: o.items || []
-            }));
+            const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => {
+              // PRESERVE ORIGINAL TIME: Use sheet's existing fullFormattedDate/timestamp if available, do not overwrite with current time
+              let existingTime = o.fullFormattedDate;
+              if (!existingTime && o.timestamp) {
+                let d = new Date(o.timestamp);
+                existingTime = d.toLocaleDateString() + `, ` + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+              return {
+                id: Number(o.id),
+                total: Number(o.totalAmount),
+                table: o.table || 'DINEIN',
+                serviceArea: o.serviceArea || 'First Floor',
+                waiterName: o.waiterName || 'Counter',
+                time: o.time || '10:45 AM',
+                fullFormattedDate: existingTime || (o.time ? o.time : new Date().toLocaleString()),
+                timestamp: o.timestamp || new Date().toISOString(),
+                items: o.items || []
+              };
+            });
             if(completedFromSheet.length > 0) {
-              localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(completedFromSheet));
+              // Merge with local storage to avoid overwriting distinct historical timestamps if local records are richer
+              let localSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
+              let mergedMap = new Map();
+              localSales.forEach(s => mergedMap.set(s.id, s));
+              completedFromSheet.forEach(s => {
+                if(!mergedMap.has(s.id) || !mergedMap.get(s.id).fullFormattedDate) {
+                  mergedMap.set(s.id, s);
+                }
+              });
+              localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(Array.from(mergedMap.values())));
             }
             renderIncomingQueue();
             renderKDS();
@@ -588,7 +605,6 @@
       const now = new Date();
       const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Group cart items by category
       let categoryGroups = {};
       currentCart.forEach(item => {
         let cat = item.category || 'General';
@@ -642,9 +658,9 @@
       const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
       
       const now = new Date();
+      // Record precise creation timestamp for this specific new order
       const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Deduct stock
       currentCart.forEach(cartItem => {
         const found = menuCatalog.find(m => m.id === cartItem.id);
         if(found) {
@@ -1010,7 +1026,7 @@
 
     function exportSystemDataBackup() {
       const data = { profile: restaurantProfile, menu: menuCatalog, areas: serviceAreas, stock: stockCatalog };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/json' },);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'RMS_Backup.json'; a.click();
     }
     function importSystemDataRestore(e) {
