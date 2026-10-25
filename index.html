@@ -27,7 +27,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-  <!-- INDIVIDUAL SLIP PRINT AREA -->
+  <!-- CATEGORY-WISE KOT SLIP PRINT AREA -->
   <div id="kot-print-area" class="hidden"></div>
 
   <!-- RECEIPT MODAL -->
@@ -59,7 +59,7 @@
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 no-print">
-        <button onclick="printIndividualItemWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
+        <button onclick="printCategoryWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
         <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
       </div>
     </div>
@@ -268,7 +268,7 @@
               </div>
               
               <div class="grid grid-cols-3 gap-2 pt-1">
-                <button onclick="printIndividualItemWiseKOT()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> KOT</button>
+                <button onclick="printCategoryWiseKOT()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> KOT</button>
                 <button onclick="checkoutOrder('payment')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-wallet"></i> Payment</button>
                 <button onclick="checkoutOrder('cash')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow flex items-center justify-center gap-1"><i class="fa-solid fa-check"></i> Save</button>
               </div>
@@ -386,7 +386,7 @@
       { id: 17, name: 'Kabab Masalha', category: 'Karahi', price: 1000, stock: 100, image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=500&auto=format&fit=crop&q=80' },
       { id: 18, name: 'Tuwapis', category: 'Karahi', price: 800, stock: 100, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80' },
       { id: 19, name: 'Chicken Juicy Sajji (Full)', category: 'Sajji', price: 2400, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
-      { id: 20, name: 'Fish', category: 'Sajji', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=500&auto=format&fit=crop&q=80' },
+      { id: 20, name: 'Fish', category: 'Fish', price: 1700, stock: 100, image: 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=500&auto=format&fit=crop&q=80' },
       { id: 21, name: 'Half Sajji', category: 'Sajji', price: 1300, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 22, name: 'Quarter Leg Sajji', category: 'Sajji', price: 650, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
       { id: 23, name: 'Quarter Chest Sajji', category: 'Sajji', price: 750, stock: 100, image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=500&auto=format&fit=crop&q=80' },
@@ -579,7 +579,7 @@
 
     setInterval(fetchOrdersFromSheet, 4000);
 
-    function printIndividualItemWiseKOT() {
+    function printCategoryWiseKOT() {
       if(currentCart.length === 0) return alert("Cart is empty!");
       
       const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
@@ -588,39 +588,46 @@
       const now = new Date();
       const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      let expandedItems = [];
+      // Group cart items by category
+      let categoryGroups = {};
       currentCart.forEach(item => {
-        for(let q = 0; q < Number(item.qty); q++) {
-          expandedItems.push({
-            name: item.name,
-            category: item.category || 'General',
-            price: item.price,
-            qty: 1
-          });
-        }
+        let cat = item.category || 'General';
+        if(!categoryGroups[cat]) categoryGroups[cat] = [];
+        categoryGroups[cat].push(item);
       });
 
+      let categories = Object.keys(categoryGroups);
       const kotArea = document.getElementById('kot-print-area');
-      kotArea.innerHTML = expandedItems.map((item, index) => `
-        <div class="print-slip-box" style="font-family: monospace; font-size: 13px; padding: 15px; background: #fff; width: 300px; margin: 0 auto;">
-          <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; background: #000; color: #fff; padding: 4px;">*** ${(item.category).toUpperCase()} COUNTER (${index + 1} of ${expandedItems.length}) ***</div>
-          <br/>
-          <div style="font-weight: bold;">Restaurant: ${restaurantProfile.name}</div>
-          <div>Branch: ${restaurantProfile.branch}</div>
-          <div>Date: ${formattedDate}</div>
-          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          <div style="font-size: 16px; font-weight: bold;">Order Type: ${currentSelectedOrderType}</div>
-          <div style="font-size: 14px; font-weight: bold; color: #4338ca;">Table / Area: ${tableNo} (${serviceArea})</div>
-          <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
-          ${comments ? `<div style="margin-top: 5px; font-style: italic; font-weight: bold;">Note: ${comments}</div>` : ''}
-          <br/>
-          <div style="border: 2px solid #000; padding: 10px; text-align: center; background: #f9f9f9;">
-            <div style="font-size: 18px; font-weight: black;">${item.name}</div>
-            <div style="font-size: 16px; font-weight: bold; margin-top: 5px; color: #dc2626;">QUANTITY: 1</div>
+      
+      kotArea.innerHTML = categories.map((cat, index) => {
+        let itemsHtml = categoryGroups[cat].map(i => `
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; padding: 4px 0; border-bottom: 1px dashed #ccc;">
+            <span>${i.name}</span>
+            <span>x${i.qty}</span>
           </div>
-          <div style="text-align: center; margin-top: 15px; font-size: 10px; font-weight: bold;">--- Send to Counter ---</div>
-        </div>
-      `).join('');
+        `).join('');
+
+        return `
+          <div class="print-slip-box" style="font-family: monospace; font-size: 13px; padding: 15px; background: #fff; width: 300px; margin: 0 auto;">
+            <div style="text-align: center; font-weight: bold; font-size: 14px; text-transform: uppercase; background: #000; color: #fff; padding: 5px;">*** ${(cat).toUpperCase()} COUNTER ***</div>
+            <br/>
+            <div style="font-weight: bold;">Restaurant: ${restaurantProfile.name}</div>
+            <div>Branch: ${restaurantProfile.branch}</div>
+            <div>Date: ${formattedDate}</div>
+            <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
+            <div style="font-size: 15px; font-weight: bold;">Order Type: ${currentSelectedOrderType}</div>
+            <div style="font-size: 13px; font-weight: bold; color: #4338ca;">Table / Area: ${tableNo} (${serviceArea})</div>
+            <hr style="border: none; border-top: 1px solid #000; margin: 5px 0;"/>
+            ${comments ? `<div style="margin-top: 5px; font-style: italic; font-weight: bold;">Note: ${comments}</div>` : ''}
+            <br/>
+            <div style="border: 2px solid #000; padding: 10px; background: #f9f9f9;">
+              <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px; text-decoration: underline;">ITEMS LIST:</div>
+              ${itemsHtml}
+            </div>
+            <div style="text-align: center; margin-top: 15px; font-size: 10px; font-weight: bold;">--- Send to ${cat} Kitchen ---</div>
+          </div>
+        `;
+      }).join('');
 
       window.print();
     }
@@ -1003,7 +1010,7 @@
 
     function exportSystemDataBackup() {
       const data = { profile: restaurantProfile, menu: menuCatalog, areas: serviceAreas, stock: stockCatalog };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/json' },);
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'RMS_Backup.json'; a.click();
     }
     function importSystemDataRestore(e) {
