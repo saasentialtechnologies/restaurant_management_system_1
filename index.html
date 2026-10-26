@@ -19,7 +19,7 @@
   <style>
     @media print {
       body * { visibility: hidden; }
-      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible; }
+      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt * { visibility: visible; }
       #receipt-modal { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white !important; z-index: 9999; }
       #kot-print-area { display: none !important; }
       .no-print { display: none !important; }
@@ -430,8 +430,9 @@
     let currentSelectedOrderType = 'DINEIN';
     let salesChartInstance = null;
     let globalSerialPort = null;
+    let lastCompletedOrder = null;
 
-    // DIRECT ESC/POS HARDWARE BYPASS PRINTING
+    // DIRECT ESC/POS HARDWARE HARDWARE BYPASS PRINTING
     async function connectThermalPrinterHardware() {
       if ('serial' in navigator) {
         try {
@@ -462,27 +463,22 @@
     }
 
     async function printDirectESCPOSThermal() {
-      if(currentCart.length === 0) return alert("Cart is empty!");
-
-      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-      const total = Math.max(0, subtotal - discount);
-      const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
+      if(!lastCompletedOrder) return alert("No active bill to print!");
 
       let esc = [0x1B, 0x40]; // Initialize printer
       esc.push(0x1B, 0x61, 0x01); // Center align
 
       let textEncoder = new TextEncoder();
-      let headerStr = `${restaurantProfile.name}\n${restaurantProfile.branch}\n--------------------------------\nOrder: ${currentSelectedOrderType} (${tableNo})\n--------------------------------\n`;
+      let headerStr = `${restaurantProfile.name}\n${restaurantProfile.branch}\n--------------------------------\nInvoice #: ${lastCompletedOrder.id}\nOrder: ${lastCompletedOrder.table} (${lastCompletedOrder.serviceArea})\n--------------------------------\n`;
       esc.push(...textEncoder.encode(headerStr));
 
       esc.push(0x1B, 0x61, 0x00);
-      currentCart.forEach(i => {
+      lastCompletedOrder.items.forEach(i => {
         let line = `${i.name} x${i.qty} = Rs.${i.price * i.qty}\n`;
         esc.push(...textEncoder.encode(line));
       });
 
-      let footerStr = `--------------------------------\nSUBTOTAL: Rs.${subtotal}\nDISCOUNT: Rs.${discount}\nTOTAL: Rs.${total}\n\nThank You!\nPowered by SaaSential\n\n\n`;
+      let footerStr = `--------------------------------\nSUBTOTAL: Rs.${lastCompletedOrder.totalAmount + lastCompletedOrder.discount}\nDISCOUNT: Rs.${lastCompletedOrder.discount}\nTOTAL: Rs.${lastCompletedOrder.totalAmount}\n\nThank You!\nPowered by SaaSential\n\n\n`;
       esc.push(...textEncoder.encode(footerStr));
       esc.push(0x1D, 0x56, 0x41, 0x03); // Cut paper
 
@@ -490,39 +486,33 @@
       const success = await sendRawBytesToPrinter(uint8Arr);
 
       if(!success) {
-        showReceiptModalWithCurrentCart();
+        window.print();
       } else {
         showToast("Raw ESC/POS Printed", "Direct byte output sent to thermal printer.");
       }
     }
 
-    function showReceiptModalWithCurrentCart() {
-      if(currentCart.length === 0) return alert("Cart is empty!");
-      const subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-      const total = Math.max(0, subtotal - discount);
-      const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
-      const serviceArea = document.getElementById('table-select-dropdown').value || 'First Floor';
-      const now = new Date();
-
+    function showReceiptModal(order) {
+      lastCompletedOrder = order;
       document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
       document.getElementById('receipt-branch-name').innerText = restaurantProfile.branch;
-      document.getElementById('receipt-order-id').innerText = `Invoice #: ${Math.floor(Math.random() * 89999 + 10000)}`;
-      document.getElementById('receipt-table-no').innerText = `Order Type: ${currentSelectedOrderType}`;
-      document.getElementById('receipt-service-area').innerText = `Service Area: ${serviceArea} (${tableNo})`;
-      document.getElementById('receipt-waiter-name').innerText = `Cashier: Counter Cashier`;
-      document.getElementById('receipt-time').innerText = `Date: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+      document.getElementById('receipt-order-id').innerText = `Invoice #: ${order.id}`;
+      document.getElementById('receipt-table-no').innerText = `Order Type: ${order.table}`;
+      document.getElementById('receipt-service-area').innerText = `Service Area: ${order.serviceArea}`;
+      document.getElementById('receipt-waiter-name').innerText = `Cashier: ${order.waiterName}`;
+      document.getElementById('receipt-time').innerText = `Date: ${order.fullFormattedDate}`;
 
-      document.getElementById('receipt-items-list').innerHTML = currentCart.map(i => `
+      document.getElementById('receipt-items-list').innerHTML = order.items.map(i => `
         <div class="flex justify-between">
           <span>${i.name} (x${i.qty})</span>
           <span>Rs. ${i.price * i.qty}</span>
         </div>
       `).join('');
 
+      let subtotal = order.totalAmount + (order.discount || 0);
       document.getElementById('receipt-subtotal').innerText = `Rs. ${subtotal.toFixed(2)}`;
-      document.getElementById('receipt-discount').innerText = `Rs. ${discount.toFixed(2)}`;
-      document.getElementById('receipt-total-amount').innerText = `Rs. ${total.toFixed(2)}`;
+      document.getElementById('receipt-discount').innerText = `Rs. ${(order.discount || 0).toFixed(2)}`;
+      document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount.toFixed(2)}`;
 
       document.getElementById('receipt-modal').classList.remove('hidden');
     }
@@ -902,8 +892,8 @@
 
       pushOrderToSheet(order);
 
-      // Trigger Full Bill Modal popup for printing bill immediately
-      showReceiptModalWithCurrentCart();
+      // SHOW BILL RECEIPT MODAL IMMEDIATELY
+      showReceiptModal(order);
 
       currentCart = [];
       document.getElementById('discount-input').value = '0';
