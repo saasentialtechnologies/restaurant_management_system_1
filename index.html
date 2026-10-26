@@ -20,7 +20,8 @@
     @media print {
       body * { visibility: hidden !important; }
       #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible !important; }
-      #receipt-modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; box-shadow: none !important; }
+      #receipt-modal { display: none !important; } /* Print normal receipt only when window.print() triggered specifically, otherwise kot print area takes over */
+      #kot-print-area { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; }
       .no-print { display: none !important; }
     }
     .active-nav-btn { background-color: #0f172a !important; color: #ffffff !important; border-left: 4px solid #10b981 !important; }
@@ -69,7 +70,7 @@
       </div>
       <div class="grid grid-cols-2 gap-2 no-print">
         <button onclick="printCategoryWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
-        <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+        <button onclick="printActualBillModal()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
       </div>
     </div>
   </div>
@@ -431,7 +432,7 @@
     let globalSerialPort = null;
     let lastCompletedOrder = null;
 
-    // DIRECT ESC/POS HARDWARE HARDWARE BYPASS PRINTING
+    // DIRECT ESC/POS HARDWARE BYPASS PRINTING
     async function connectThermalPrinterHardware() {
       if ('serial' in navigator) {
         try {
@@ -461,34 +462,12 @@
       }
     }
 
-    async function printDirectESCPOSThermal() {
-      if(!lastCompletedOrder) return alert("No active bill to print!");
-
-      let esc = [0x1B, 0x40]; // Initialize printer
-      esc.push(0x1B, 0x61, 0x01); // Center align
-
-      let textEncoder = new TextEncoder();
-      let headerStr = `${restaurantProfile.name}\n${restaurantProfile.branch}\n--------------------------------\nInvoice #: ${lastCompletedOrder.id}\nOrder: ${lastCompletedOrder.table} (${lastCompletedOrder.serviceArea})\n--------------------------------\n`;
-      esc.push(...textEncoder.encode(headerStr));
-
-      esc.push(0x1B, 0x61, 0x00);
-      lastCompletedOrder.items.forEach(i => {
-        let line = `${i.name} x${i.qty} = Rs.${i.price * i.qty}\n`;
-        esc.push(...textEncoder.encode(line));
-      });
-
-      let footerStr = `--------------------------------\nSUBTOTAL: Rs.${lastCompletedOrder.totalAmount + lastCompletedOrder.discount}\nDISCOUNT: Rs.${lastCompletedOrder.discount}\nTOTAL: Rs.${lastCompletedOrder.totalAmount}\n\nThank You!\nPowered by SaaSential\n\n\n`;
-      esc.push(...textEncoder.encode(footerStr));
-      esc.push(0x1D, 0x56, 0x41, 0x03); // Cut paper
-
-      const uint8Arr = new Uint8Array(esc);
-      const success = await sendRawBytesToPrinter(uint8Arr);
-
-      if(!success) {
-        window.print();
-      } else {
-        showToast("Raw ESC/POS Printed", "Direct byte output sent to thermal printer.");
-      }
+    function printActualBillModal() {
+      const kotArea = document.getElementById('kot-print-area');
+      kotArea.style.display = 'none';
+      const receiptModal = document.getElementById('receipt-modal');
+      receiptModal.style.display = 'flex';
+      window.print();
     }
 
     function showReceiptModal(order) {
@@ -807,6 +786,7 @@
       let categories = Object.keys(categoryGroups);
       const kotArea = document.getElementById('kot-print-area');
       kotArea.style.display = 'block';
+      document.getElementById('receipt-modal').classList.add('hidden');
       
       kotArea.innerHTML = categories.map((cat, index) => {
         let itemsHtml = categoryGroups[cat].map(i => `
