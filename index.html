@@ -10,7 +10,8 @@
   
   <!-- PWA Manifest & Meta Tags -->
   <meta name="theme-color" content="#0f172a">
-  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRld2FuLWUtTGF6aXogUk1TIiwKICAic2hvcnRfbmFtZSI6ICJSTVMiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTcyYSIsCiAgInRoZW1lX2NvbG9yIjogIiMwZjE3MmEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcud2ZsYXRpY29uLmNvbS81MTIvMzQ0My8zNDQzMzk0LnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfQogIF0KfQ==">
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRld2FuLWUtTGF6aXogUk1TIiwKICAic2hvcnRfbmFtZSI6ICJSTVMiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTcyYSIsCiAgInRoZW1lX2NvbG9yIjogIiMwZjE3MmEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcud2ZsYXRpY29uLmNvbS81MTIvMzQ0My8zNDQzMzk0LnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgf5  ]
+}">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -553,7 +554,6 @@
 
     async function pushOrderToSheet(order) {
       if (!navigator.onLine) {
-        // Save to offline queue if internet is not active
         let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
         queue.push({ type: 'addOrder', data: order });
         localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(queue));
@@ -635,7 +635,7 @@
     }
 
     async function fetchOrdersFromSheet() {
-      if (!navigator.onLine) return; // Skip fetching if offline
+      if (!navigator.onLine) return;
       try {
         const res = await fetch(SHEET_WEB_APP_URL);
         if(res.ok) {
@@ -644,6 +644,7 @@
             let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
             let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
             
+            // STRICT FILTERING: Exclude already completed or cancelled order IDs permanently
             const active = orders.filter(o => o.status === 'Active' && !completedIds.includes(Number(o.id)) && !cancelledIds.includes(Number(o.id)));
             localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
             localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(active));
@@ -814,7 +815,8 @@
     function renderIncomingQueue() {
       let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
       let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
-      active = active.filter(o => !cancelledIds.includes(Number(o.id)));
+      let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
+      active = active.filter(o => !cancelledIds.includes(Number(o.id)) && !completedIds.includes(Number(o.id)));
 
       document.getElementById('incoming-count-badge').innerText = `${active.length} Active`;
       document.getElementById('incoming-orders-queue').innerHTML = active.map(o => `
@@ -851,7 +853,8 @@
     function renderKDS() {
       let kds = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
       let cancelledIds = JSON.parse(localStorage.getItem('pakrms_cancelled_ids') || '[]');
-      kds = kds.filter(o => !cancelledIds.includes(Number(o.id)));
+      let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
+      kds = kds.filter(o => !cancelledIds.includes(Number(o.id)) && !completedIds.includes(Number(o.id)));
 
       document.getElementById('kds-badge').innerText = kds.length;
       const container = document.getElementById('kds-orders-container');
@@ -874,23 +877,33 @@
     }
 
     function completeOrder(id) {
+      // PERMANENTLY RECORD COMPLETED ID TO PREVENT RE-FETCH LOOP
+      let completedIds = JSON.parse(localStorage.getItem('pakrms_completed_ids') || '[]');
+      if(!completedIds.includes(Number(id))) {
+        completedIds.push(Number(id));
+        localStorage.setItem('pakrms_completed_ids', JSON.stringify(completedIds));
+      }
+
       let kds = JSON.parse(localStorage.getItem('pakrms_kds_GULBERG')) || [];
-      const ord = kds.find(o => o.id === id);
-      kds = kds.filter(o => o.id !== id);
+      const ord = kds.find(o => Number(o.id) === Number(id));
+      kds = kds.filter(o => Number(o.id) !== Number(id));
       localStorage.setItem('pakrms_kds_GULBERG', JSON.stringify(kds));
       
       let active = JSON.parse(localStorage.getItem('pakrms_active_waiter_orders')) || [];
-      active = active.filter(o => o.id !== id);
+      active = active.filter(o => Number(o.id) !== Number(id));
       localStorage.setItem('pakrms_active_waiter_orders', JSON.stringify(active));
 
       if(ord) {
         let sales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
-        sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table, serviceArea: ord.serviceArea, waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp, items: ord.items });
-        localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
+        if(!sales.some(s => Number(s.id) === Number(ord.id))) {
+          sales.push({ id: ord.id, total: ord.totalAmount, table: ord.table, serviceArea: ord.serviceArea, waiterName: ord.waiterName, time: ord.time, fullFormattedDate: ord.fullFormattedDate, timestamp: ord.timestamp, items: ord.items });
+          localStorage.setItem('pakrms_completed_sales_GULBERG', JSON.stringify(sales));
+        }
         markOrderCompleteInSheet(id, 'completeOrder');
       }
       renderKDS();
       renderIncomingQueue();
+      showToast("Served", `Order #${id} marked as served & completed.`);
     }
 
     function switchView(viewId, subMode = '') {
