@@ -19,9 +19,12 @@
   <style>
     @media print {
       body * { visibility: hidden !important; }
-      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible !important; }
-      #receipt-modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; box-shadow: none !important; }
-      #kot-print-area { display: none !important; }
+      body.printing-bill #receipt-modal, body.printing-bill #receipt-modal *, body.printing-bill #printable-receipt, body.printing-bill #printable-receipt * { visibility: visible !important; }
+      body.printing-bill #receipt-modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; box-shadow: none !important; }
+      
+      body.printing-kot #kot-print-area, body.printing-kot #kot-print-area * { visibility: visible !important; }
+      body.printing-kot #kot-print-area { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; }
+
       .no-print { display: none !important; }
     }
     .active-nav-btn { background-color: #0f172a !important; color: #ffffff !important; border-left: 4px solid #10b981 !important; }
@@ -43,7 +46,7 @@
   <!-- BILL / RECEIPT MODAL -->
   <div id="receipt-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative">
-      <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl no-print">&times;</button>
+      <button onclick="closeReceiptModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl no-print cursor-pointer">&times;</button>
       <div id="printable-receipt" class="bg-slate-50 border p-4 rounded-xl text-slate-900 font-mono text-xs mb-4 space-y-2">
         <div class="text-center border-b pb-2">
           <h3 id="receipt-brand-name" class="font-black text-sm uppercase">DEWAN-E-LAZIZ SAJJI AND BBQ</h3>
@@ -69,8 +72,8 @@
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 no-print">
-        <button onclick="printCategoryWiseKOT()" class="bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
-        <button onclick="window.print()" class="bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
+        <button onclick="printCategoryWiseKOT()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-receipt"></i> Print Slips</button>
+        <button onclick="printCustomerBill()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> Print Bill</button>
       </div>
     </div>
   </div>
@@ -78,7 +81,7 @@
   <!-- RESTAURANT PROFILE EDIT MODAL -->
   <div id="restaurant-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 relative">
-      <button onclick="closeRestaurantEditModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <button onclick="closeRestaurantEditModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-store text-emerald-600 mr-2"></i> Edit Restaurant Details</h3>
       <div class="space-y-3">
         <div>
@@ -97,7 +100,7 @@
   <!-- EDIT MENU MODAL -->
   <div id="menu-edit-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
-      <button onclick="closeMenuEditModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <button onclick="closeMenuEditModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-utensils text-emerald-600 mr-2"></i> Edit Menu Items & Stock</h3>
       <div class="overflow-y-auto max-h-[60vh] space-y-2 pr-1" id="menu-edit-list-container"></div>
       <button onclick="closeMenuEditModal(); renderMenu();" class="mt-3 w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Done & Close</button>
@@ -107,7 +110,7 @@
   <!-- ADMIN PASSWORD MODAL FOR STOCK -->
   <div id="admin-auth-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
-      <button onclick="closeAdminAuthModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <button onclick="closeAdminAuthModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-2"><i class="fa-solid fa-lock text-rose-600 mr-1"></i> Admin Authorization</h3>
       <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock</p>
       <input type="password" id="admin-pass-input" placeholder="Password" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none mb-3 text-center">
@@ -118,7 +121,7 @@
   <!-- STOCK / INVENTORY MODAL -->
   <div id="stock-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative max-h-[90vh] flex flex-col justify-between">
-      <button onclick="closeStockModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <button onclick="closeStockModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer">&times;</button>
       <div>
         <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-boxes-stacked text-amber-500 mr-2"></i> Stock & Inventory Management</h3>
         <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-xl border">
@@ -137,7 +140,7 @@
   <!-- SERVICE AREAS CRUD MODAL -->
   <div id="table-crud-modal" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 relative">
-      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
+      <button onclick="closeTableCrudModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-3"><i class="fa-solid fa-map-location-dot text-indigo-600 mr-2"></i> Manage Service Areas / Floors</h3>
       <div class="grid grid-cols-12 gap-2 mb-4">
         <input type="text" id="new-spot-name" placeholder="Area Name" class="col-span-8 bg-slate-50 border p-2 text-xs rounded-xl outline-none">
@@ -462,6 +465,13 @@
       }
     }
 
+    function printCustomerBill() {
+      document.body.classList.remove('printing-kot');
+      document.body.classList.add('printing-bill');
+      window.print();
+      document.body.classList.remove('printing-bill');
+    }
+
     function showReceiptModal(order) {
       lastCompletedOrder = order;
       document.getElementById('receipt-brand-name').innerText = restaurantProfile.name;
@@ -484,7 +494,6 @@
       document.getElementById('receipt-discount').innerText = `Rs. ${(order.discount || 0).toFixed(2)}`;
       document.getElementById('receipt-total-amount').innerText = `Rs. ${order.totalAmount.toFixed(2)}`;
 
-      document.getElementById('kot-print-area').style.display = 'none';
       document.getElementById('receipt-modal').classList.remove('hidden');
     }
 
@@ -778,8 +787,6 @@
 
       let categories = Object.keys(categoryGroups);
       const kotArea = document.getElementById('kot-print-area');
-      kotArea.style.display = 'block';
-      document.getElementById('receipt-modal').classList.add('hidden');
       
       kotArea.innerHTML = categories.map((cat, index) => {
         let itemsHtml = categoryGroups[cat].map(i => `
@@ -811,8 +818,10 @@
         `;
       }).join('');
 
+      document.body.classList.remove('printing-bill');
+      document.body.classList.add('printing-kot');
       window.print();
-      kotArea.style.display = 'none';
+      document.body.classList.remove('printing-kot');
     }
 
     function checkoutOrder(type) {
