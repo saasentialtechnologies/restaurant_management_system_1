@@ -10,7 +10,7 @@
   
   <!-- PWA Manifest & Meta Tags -->
   <meta name="theme-color" content="#0f172a">
-  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRld2FuLWUtTGF6aXogUk1TIiwKICAic2hvcnRfbmFtZSI6ICJSTVMiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTcyYSIsCiAgInRoZW1lX2NvbG9yIjogIiMwZjE3MmEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcud2ZsYXRpY29uLmNvbS81MTIvMzQ0My8zNDQzMzk0LnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfQogIF0KfQ==">
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRld2FuLWUtTGF6aXogUk1TIiwKICAic2hvcnRfbmFtZSI6ICJSTVMiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTcyYSIsCiAgInRoZW1lX2NvbG9yIjogIiMwZjE3MmEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcud2ZsYXRpY29uLmNvbS81MTIvMzQ0My8zNDQzMzk0LnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfGFi\n  ]}">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,10 +18,9 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     @media print {
-      body * { visibility: hidden; }
-      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt * { visibility: visible; }
-      #receipt-modal { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white !important; z-index: 9999; }
-      #kot-print-area { display: none !important; }
+      body * { visibility: hidden !important; }
+      #receipt-modal, #receipt-modal *, #printable-receipt, #printable-receipt *, #kot-print-area, #kot-print-area * { visibility: visible !important; }
+      #receipt-modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; box-shadow: none !important; }
       .no-print { display: none !important; }
     }
     .active-nav-btn { background-color: #0f172a !important; color: #ffffff !important; border-left: 4px solid #10b981 !important; }
@@ -807,6 +806,7 @@
 
       let categories = Object.keys(categoryGroups);
       const kotArea = document.getElementById('kot-print-area');
+      kotArea.style.display = 'block';
       
       kotArea.innerHTML = categories.map((cat, index) => {
         let itemsHtml = categoryGroups[cat].map(i => `
@@ -817,7 +817,7 @@
         `).join('');
 
         return `
-          <div class="print-slip-box" style="font-family: monospace; font-size: 13px; padding: 15px; background: #fff; width: 300px; margin: 0 auto;">
+          <div class="print-slip-box" style="font-family: monospace; font-size: 13px; padding: 15px; background: #fff; width: 300px; margin: 0 auto; page-break-after: always;">
             <div style="text-align: center; font-weight: bold; font-size: 14px; text-transform: uppercase; background: #000; color: #fff; padding: 5px;">*** ${(cat).toUpperCase()} COUNTER ***</div>
             <br/>
             <div style="font-weight: bold;">Restaurant: ${restaurantProfile.name}</div>
@@ -839,6 +839,7 @@
       }).join('');
 
       window.print();
+      kotArea.style.display = 'none';
     }
 
     function checkoutOrder(type) {
