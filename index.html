@@ -7,6 +7,11 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Dewan-e-Laziz Sajji and BBQ - Enterprise RMS</title>
+  
+  <!-- PWA Manifest & Meta Tags -->
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRld2FuLWUtTGF6aXogUk1TIiwKICAic2hvcnRfbmFtZSI6ICJSTVMiLAogICJzdGFydF91cmwiOiAiaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTcyYSIsCiAgInRoZW1lX2NvbG9yIjogIiMwZjE3MmEiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcud2ZsYXRpY29uLmNvbS81MTIvMzQ0My8zNDQzMzk0LnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfQogIF0KfQ==">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,6 +31,12 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- ONLINE/OFFLINE STATUS BAR -->
+  <div id="network-status-bar" class="bg-emerald-600 text-white text-[11px] font-bold py-1 px-4 text-center flex justify-between items-center transition-all">
+    <span id="network-status-text"><i class="fa-solid fa-wifi mr-1"></i> Online Mode - Live Sync Active</span>
+    <span id="pending-sync-badge" class="bg-emerald-800 text-white px-2 py-0.5 rounded-full text-[10px] hidden">0 Pending Sync</span>
+  </div>
 
   <!-- CATEGORY-WISE KOT SLIP PRINT AREA -->
   <div id="kot-print-area" class="hidden"></div>
@@ -99,7 +110,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 relative text-center">
       <button onclick="closeAdminAuthModal()" class="absolute top-3 right-3 text-slate-400 font-bold text-xl">&times;</button>
       <h3 class="text-base font-bold text-slate-900 mb-2"><i class="fa-solid fa-lock text-rose-600 mr-1"></i> Admin Authorization</h3>
-      <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock (Default: admin123)</p>
+      <p class="text-xs text-slate-500 mb-3">Enter Admin Password to manage Stock</p>
       <input type="password" id="admin-pass-input" placeholder="Password" class="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none mb-3 text-center">
       <button onclick="verifyAdminPassword()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">Verify</button>
     </div>
@@ -419,6 +430,38 @@
     let currentSelectedOrderType = 'DINEIN';
     let salesChartInstance = null;
 
+    // NETWORK MONITORING & AUTO-SYNC QUEUE ENGINE
+    function updateNetworkStatus() {
+      const statusBar = document.getElementById('network-status-bar');
+      const statusText = document.getElementById('network-status-text');
+      const badge = document.getElementById('pending-sync-badge');
+      let pendingQueue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+
+      if (navigator.onLine) {
+        statusBar.className = "bg-emerald-600 text-white text-[11px] font-bold py-1 px-4 text-center flex justify-between items-center transition-all";
+        statusText.innerHTML = `<i class="fa-solid fa-wifi mr-1"></i> Online Mode - Live Sync Active`;
+        if (pendingQueue.length > 0) {
+          badge.classList.remove('hidden');
+          badge.innerText = `${pendingQueue.length} Pending Sync`;
+          triggerPendingSync();
+        } else {
+          badge.classList.add('hidden');
+        }
+      } else {
+        statusBar.className = "bg-amber-600 text-white text-[11px] font-bold py-1 px-4 text-center flex justify-between items-center transition-all";
+        statusText.innerHTML = `<i class="fa-solid fa-wifi-slash mr-1"></i> Offline Mode - Billing Working Seamlessly`;
+        if (pendingQueue.length > 0) {
+          badge.classList.remove('hidden');
+          badge.innerText = `${pendingQueue.length} Pending Sync`;
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    }
+
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
     function showToast(title, body) {
       document.getElementById('toast-title').innerText = title;
       document.getElementById('toast-body').innerText = body;
@@ -509,6 +552,15 @@
     }
 
     async function pushOrderToSheet(order) {
+      if (!navigator.onLine) {
+        // Save to offline queue if internet is not active
+        let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+        queue.push({ type: 'addOrder', data: order });
+        localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(queue));
+        updateNetworkStatus();
+        return;
+      }
+
       try {
         await fetch(SHEET_WEB_APP_URL, {
           method: 'POST',
@@ -516,10 +568,23 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'addOrder', order: order })
         });
-      } catch(e) {}
+      } catch(e) {
+        let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+        queue.push({ type: 'addOrder', data: order });
+        localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(queue));
+        updateNetworkStatus();
+      }
     }
 
     async function markOrderCompleteInSheet(orderId, actionType = 'completeOrder') {
+      if (!navigator.onLine) {
+        let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+        queue.push({ type: actionType, orderId: orderId });
+        localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(queue));
+        updateNetworkStatus();
+        return;
+      }
+
       try {
         await fetch(SHEET_WEB_APP_URL, {
           method: 'POST',
@@ -527,10 +592,50 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: actionType, orderId: orderId })
         });
-      } catch(e) {}
+      } catch(e) {
+        let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+        queue.push({ type: actionType, orderId: orderId });
+        localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(queue));
+        updateNetworkStatus();
+      }
+    }
+
+    async function triggerPendingSync() {
+      if (!navigator.onLine) return;
+      let queue = JSON.parse(localStorage.getItem('pakrms_pending_sync_queue') || '[]');
+      if (queue.length === 0) return;
+
+      let remainingQueue = [];
+      for (let item of queue) {
+        try {
+          if (item.type === 'addOrder') {
+            await fetch(SHEET_WEB_APP_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'addOrder', order: item.data })
+            });
+          } else {
+            await fetch(SHEET_WEB_APP_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: item.type, orderId: item.orderId })
+            });
+          }
+        } catch (err) {
+          remainingQueue.push(item);
+        }
+      }
+      localStorage.setItem('pakrms_pending_sync_queue', JSON.stringify(remainingQueue));
+      updateNetworkStatus();
+      if (remainingQueue.length === 0) {
+        showToast("Auto-Sync Complete", "All offline orders pushed to Cloud.");
+      }
     }
 
     async function fetchOrdersFromSheet() {
+      if (!navigator.onLine) return; // Skip fetching if offline
       try {
         const res = await fetch(SHEET_WEB_APP_URL);
         if(res.ok) {
@@ -557,7 +662,6 @@
             localStorage.setItem('pakrms_credit_dues', JSON.stringify(creditOrders));
 
             const completedFromSheet = orders.filter(o => o.status === 'Completed').map(o => {
-              // PRESERVE ORIGINAL TIME: Use sheet's existing fullFormattedDate/timestamp if available, do not overwrite with current time
               let existingTime = o.fullFormattedDate;
               if (!existingTime && o.timestamp) {
                 let d = new Date(o.timestamp);
@@ -576,7 +680,6 @@
               };
             });
             if(completedFromSheet.length > 0) {
-              // Merge with local storage to avoid overwriting distinct historical timestamps if local records are richer
               let localSales = JSON.parse(localStorage.getItem('pakrms_completed_sales_GULBERG')) || [];
               let mergedMap = new Map();
               localSales.forEach(s => mergedMap.set(s.id, s));
@@ -594,7 +697,7 @@
       } catch(e) {}
     }
 
-    setInterval(fetchOrdersFromSheet, 4000);
+    setInterval(fetchOrdersFromSheet, 5000);
 
     function printCategoryWiseKOT() {
       if(currentCart.length === 0) return alert("Cart is empty!");
@@ -658,7 +761,6 @@
       const tableNo = document.getElementById('waiter-name-input').value.trim() || 'Table 1';
       
       const now = new Date();
-      // Record precise creation timestamp for this specific new order
       const formattedDate = now.toLocaleDateString() + `, ` + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       currentCart.forEach(cartItem => {
@@ -1046,8 +1148,27 @@
       reader.readAsText(file);
     }
 
+    // SERVICE WORKER REGISTRATION FOR PWA OFFLINE FUNCTIONALITY
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'pakrms-cache-v1';
+          self.addEventListener('install', (e) => {
+            e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
+          });
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(() => {});
+      });
+    }
+
     renderMenu();
     renderIncomingQueue();
+    updateNetworkStatus();
     fetchOrdersFromSheet();
   </script>
 </body>
